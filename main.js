@@ -22,10 +22,6 @@ function between (one, two, units) {
   ]
 }
 
-// function bounds (element) {
-//   return [element.offsetWidth, element.offsetHeight]
-// }
-
 class Route {
   constructor (origin, canvas) {
     this.points = []
