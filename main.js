@@ -76,11 +76,13 @@ class Draggable {
 }
 
 class Flight extends Draggable {
-  constructor (start, stop, element, canvas) {
+  constructor (start, stop, radius, element, canvas) {
     super(element, canvas)
     this.route = new Route(start, this.canvas)
     this.canvas.insertBefore(this.route.element, this.canvas.firstChild)
     this.route.addPoint(stop)
+    this.radius = radius
+    this.element.setAttribute('r', this.radius)
   }
   down (e) {
     console.log('down')
@@ -101,6 +103,10 @@ class Flight extends Draggable {
   render () {
     this.element.setAttribute('cx', this.route.location[0])
     this.element.setAttribute('cy', this.route.location[1])
+    this.element.setAttribute('fill', this.colliding ? 'red' : 'black')
+  }
+  distance (flight) {
+    return distance(this.route.location, flight.route.location) - this.radius - flight.radius
   }
 }
 
@@ -112,21 +118,45 @@ class Game {
     }))
     this.flights = []
     this.bounds = [this.canvas.offsetWidth, this.canvas.offsetHeight]
-    for (var i = 0; i < 1; i++) this.spawnFlight()
+    for (var i = 0; i < 10; i++) this.spawnFlight()
   }
   spawnFlight () {
-    var circle = this.canvas.appendChild(svg('circle', {r: 20}))
+    var circle = this.canvas.appendChild(svg('circle'))
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
     var start = this.edgePosition(axis, side)
     var stop = this.edgePosition(axis, (side + 1) % 2)
-    this.flights.push(new Flight(start, stop, circle, this.canvas))
+    this.flights.push(new Flight(start, stop, 20, circle, this.canvas))
   }
   step () {
-    this.flights.forEach(f => {
-      f.step()
-      f.render()
+    this.flights.forEach(flight => {
+      flight.step()
+      flight.colliding = false
     })
+    for (var i = 0; i < this.flights.length; i++) {
+      var flight = this.flights[i]
+      for (var j = 0; j < i; j++) {
+        var other = this.flights[j]
+        var distance = flight.distance(other)
+        if (distance <= 0) {
+          flight.crashed = true
+          other.crashed = true
+        } else if (distance < 50) {
+          flight.colliding = true
+          other.colliding = true
+        }
+      }
+    }
+    for (var i = 0; i < this.flights.length; i++) {
+      var flight = this.flights[i]
+      if (flight.crashed) {
+        this.flights.splice(i, 1)
+        this.canvas.removeChild(flight.element)
+        this.canvas.removeChild(flight.route.element)
+        continue
+      }
+      flight.render()
+    }
   }
   edgePosition (axis, side) {
     var position = []
