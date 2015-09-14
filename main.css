@@ -1,0 +1,12 @@
+body {
+  background: #333;
+}
+/*svg {
+  width: 100%;
+  height: auto;
+}*/
+polyline {
+  fill: transparent;
+  stroke: black;
+  stroke-width: 1;
+}
