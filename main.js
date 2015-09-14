@@ -38,20 +38,30 @@ class Route {
     var last = this.points[this.points.length - 1]
     if (this.points.length && distance(last, point) < 20.0) return
     this.points.push(point)
-    this.element.setAttribute('points', this.points.map(p => p.join()).join(' '))
+    this.render()
   }
   travel (units) {
     this.progress += units
     var accumulated = 0
-    for (var i = 0; i < this.points.length - 1; i++) {
+    var i
+    for (i = 0; i < this.points.length - 1; i++) {
       var dist = distance(this.points[i], this.points[i + 1])
-      if (this.progress < accumulated + dist) {
-        var delta = this.progress - accumulated
-        return this.location = between(this.points[i], this.points[i + 1], delta)
-      }
+      if (this.progress < accumulated + dist) break
       accumulated += dist
     }
-    return this.location = this.points[this.points.length - 1]
+    if (i === this.points.length - 1) return this.location = this.points[i]
+    var delta = this.progress - accumulated
+    this.location = between(this.points[i], this.points[i + 1], delta)
+    if (i !== 0) {
+      for (var j = 0; j < i; j++) {
+        this.progress -= distance(this.points[j], this.points[j + 1])
+        this.points.shift()
+      }
+      this.render()
+    }
+  }
+  render () {
+    this.element.setAttribute('points', this.points.map(p => p.join()).join(' '))
   }
 }
 
@@ -110,23 +120,14 @@ class Game {
     }))
     this.flights = []
     this.bounds = [this.canvas.offsetWidth, this.canvas.offsetHeight]
-    for (var i = 0; i < 10; i++) this.spawnFlight()
+    for (var i = 0; i < 1; i++) this.spawnFlight()
   }
   spawnFlight () {
     var circle = this.canvas.appendChild(svg('circle', {r: 20}))
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = [], stop = []
-    for (var i = 0; i < 2; i++) {
-      if (axis === i) {
-        start[i] = Math.random() * this.bounds[i]
-        stop[i] = Math.random() * this.bounds[i]
-      } else {
-        start[i] = side * this.bounds[i]
-        stop[i] = ((side + 1) % 2) * this.bounds[i]
-      }
-    }
-    console.log(start, stop)
+    var start = this.edgePosition(axis, side)
+    var stop = this.edgePosition(axis, (side + 1) % 2)
     this.flights.push(new Flight(start, stop, circle, this.canvas))
   }
   step () {
@@ -134,6 +135,17 @@ class Game {
       f.step()
       f.render()
     })
+  }
+  edgePosition (axis, side) {
+    var position = []
+    for (var i = 0; i < 2; i++) {
+      if (axis === i) {
+        position[i] = Math.random() * this.bounds[i]
+      } else {
+        position[i] = side * this.bounds[i]
+      }
+    }
+    return position
   }
 }
 
