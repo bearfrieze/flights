@@ -22,6 +22,10 @@ function between (one, two, units) {
   ]
 }
 
+// function bounds (element) {
+//   return [element.offsetWidth, element.offsetHeight]
+// }
+
 class Route {
   constructor (origin, canvas) {
     this.points = []
@@ -70,14 +74,11 @@ class Draggable {
 }
 
 class Flight extends Draggable {
-  constructor (x, y, element, canvas) {
+  constructor (start, stop, element, canvas) {
     super(element, canvas)
-    this.route = new Route([x, y], this.canvas)
+    this.route = new Route(start, this.canvas)
     this.canvas.insertBefore(this.route.element, this.canvas.firstChild)
-    this.route.addPoint([
-      x - 250 + Math.random() * 500,
-      y - 250 + Math.random() * 500
-    ])
+    this.route.addPoint(stop)
   }
   down (e) {
     console.log('down')
@@ -101,23 +102,44 @@ class Flight extends Draggable {
   }
 }
 
-var body = document.body
-var canvas = body.appendChild(svg('svg', {
-  width: '500',
-  height: '500',
-  viewBox: '0 0 500 500'
-}))
-var flights = []
-for (var i = 0; i < 10; i++) {
-  var circle = canvas.appendChild(svg('circle', {r: 20}))
-  flights.push(new Flight(250, 250, circle, canvas))
+class Game {
+  constructor () {
+    this.canvas = document.body.appendChild(svg('svg', {
+      width: '100%',
+      height: '100%'
+    }))
+    this.flights = []
+    this.bounds = [this.canvas.offsetWidth, this.canvas.offsetHeight]
+    for (var i = 0; i < 10; i++) this.spawnFlight()
+  }
+  spawnFlight () {
+    var circle = this.canvas.appendChild(svg('circle', {r: 20}))
+    var axis = Math.round(Math.random())
+    var side = Math.round(Math.random())
+    var start = [], stop = []
+    for (var i = 0; i < 2; i++) {
+      if (axis === i) {
+        start[i] = Math.random() * this.bounds[i]
+        stop[i] = Math.random() * this.bounds[i]
+      } else {
+        start[i] = side * this.bounds[i]
+        stop[i] = ((side + 1) % 2) * this.bounds[i]
+      }
+    }
+    console.log(start, stop)
+    this.flights.push(new Flight(start, stop, circle, this.canvas))
+  }
+  step () {
+    this.flights.forEach(f => {
+      f.step()
+      f.render()
+    })
+  }
 }
 
-var step = () => {
-  flights.forEach(f => {
-    f.step()
-    f.render()
-  })
-  window.requestAnimationFrame(step)
+var game = new Game()
+var loop = () => {
+  game.step()
+  window.requestAnimationFrame(loop)
 }
-window.requestAnimationFrame(step)
+window.requestAnimationFrame(loop)
