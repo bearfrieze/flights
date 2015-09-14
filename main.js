@@ -42,23 +42,15 @@ class Route {
   }
   travel (units) {
     this.progress += units
-    var accumulated = 0
-    var i
-    for (i = 0; i < this.points.length - 1; i++) {
-      var dist = distance(this.points[i], this.points[i + 1])
-      if (this.progress < accumulated + dist) break
-      accumulated += dist
+    while (this.points.length > 1) {
+      var dist = distance(this.points[0], this.points[1])
+      if (this.progress < dist) break
+      this.progress -= dist
+      this.points.shift()
     }
-    if (i === this.points.length - 1) return this.location = this.points[i]
-    var delta = this.progress - accumulated
-    this.location = between(this.points[i], this.points[i + 1], delta)
-    if (i !== 0) {
-      for (var j = 0; j < i; j++) {
-        this.progress -= distance(this.points[j], this.points[j + 1])
-        this.points.shift()
-      }
-      this.render()
-    }
+    this.render()
+    if (this.points.length === 1) return this.location = this.points[0]
+    this.location = between(this.points[0], this.points[1], this.progress)
   }
   render () {
     this.element.setAttribute('points', this.points.map(p => p.join()).join(' '))
