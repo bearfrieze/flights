@@ -148,12 +148,29 @@ class Flight extends Draggable {
   }
 }
 
+class Target {
+  constructor (location, canvas) {
+    this.location = location
+    this.canvas = canvas
+    this.element = this.canvas.appendChild(svg('circle'))
+    console.log(this.element)
+    this.element.setAttribute('cx', this.location[0])
+    this.element.setAttribute('cy', this.location[1])
+    this.element.setAttribute('r', 20)
+    this.element.setAttribute('fill', 'blue')
+  }
+}
+
 class Game {
   constructor () {
     this.canvas = document.body.appendChild(svg('svg', {
       width: '100%',
       height: '100%'
     }))
+    this.targets = [new Target(
+      [this.canvas.offsetWidth / 2, this.canvas.offsetHeight / 2],
+      this.canvas.appendChild(svg('g'))
+    )]
     this.flights = []
     this.difficulty = 5
   }
