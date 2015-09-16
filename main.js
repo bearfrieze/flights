@@ -130,7 +130,7 @@ class Game {
       height: '100%'
     }))
     this.flights = []
-    for (var i = 0; i < 10; i++) this.spawnFlight()
+    this.difficulty = 5
   }
   spawnFlight () {
     var circle = this.canvas.appendChild(svg('circle'))
@@ -169,6 +169,7 @@ class Game {
       }
       flight.render()
     }
+    while (this.flights.length < this.difficulty) this.spawnFlight()
   }
 }
 
