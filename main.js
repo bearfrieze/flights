@@ -43,8 +43,8 @@ function edgePosition (canvas, axis, side) {
 
 class Route {
   constructor (origin, canvas) {
+    this.element = canvas.insertBefore(svg('polyline'), canvas.firstChild)
     this.points = []
-    this.element = svg('polyline')
     this.addPoint(origin)
     this.location = origin
     this.progress = 0
@@ -73,6 +73,9 @@ class Route {
   }
   render () {
     this.element.setAttribute('points', this.points.map(p => p.join()).join(' '))
+  }
+  destroy () {
+    this.canvas.removeChild(this.element)
   }
 }
 
@@ -103,24 +106,23 @@ class Draggable {
     }
     element.addEventListener('mousedown', listener)
     element.addEventListener('touchstart', listener)
-    this.element = element
-    this.canvas = canvas
   }
 }
 
 class Flight extends Draggable {
-  constructor (start, stop, radius, element, canvas) {
+  constructor (start, stop, radius, canvas) {
+    var element = canvas.appendChild(svg('circle'))
     super(element, canvas)
+    this.element = element
+    this.canvas = canvas
     this.route = new Route(start, this.canvas)
-    this.canvas.insertBefore(this.route.element, this.canvas.firstChild)
     this.route.addPoint(stop)
     this.radius = radius
     this.element.setAttribute('r', this.radius)
   }
   down (point) {
-    if (this.route) this.canvas.removeChild(this.route.element)
+    if (this.route) this.route.destroy()
     this.route = new Route(point, this.canvas)
-    this.canvas.insertBefore(this.route.element, this.canvas.firstChild)
     this.route.drawing = true
   }
   drag (point) {
@@ -140,6 +142,10 @@ class Flight extends Draggable {
   distance (flight) {
     return distance(this.route.location, flight.route.location) - this.radius - flight.radius
   }
+  destroy () {
+    this.canvas.removeChild(this.element)
+    this.route.destroy()
+  }
 }
 
 class Game {
@@ -152,12 +158,11 @@ class Game {
     this.difficulty = 5
   }
   spawnFlight () {
-    var circle = this.canvas.appendChild(svg('circle'))
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
     var start = edgePosition(this.canvas, axis, side)
     var stop = edgePosition(this.canvas, axis, (side + 1) % 2)
-    this.flights.push(new Flight(start, stop, 20, circle, this.canvas))
+    this.flights.push(new Flight(start, stop, 20, this.canvas))
   }
   step () {
     this.flights.forEach(flight => {
@@ -182,8 +187,7 @@ class Game {
       var flight = this.flights[i]
       if (flight.crashed) {
         this.flights.splice(i, 1)
-        this.canvas.removeChild(flight.element)
-        this.canvas.removeChild(flight.route.element)
+        flight.destroy()
         continue
       }
       flight.render()
