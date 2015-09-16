@@ -7,6 +7,12 @@ function svg (tag, attributes) {
 }
 
 function point (e) {
+  if ('changedTouches' in e) {
+    return [e.changedTouches[0].pageX, e.changedTouches[0].pageY]
+  }
+  if ('targetTouches' in e) {
+    return [e.targetTouches[0].pageX, e.targetTouches[0].pageY]
+  }
   return [e.offsetX, e.offsetY]
 }
 
@@ -72,17 +78,31 @@ class Route {
 
 class Draggable {
   constructor (element, canvas) {
-    element.addEventListener('mousedown', e => {
-      this.down(e)
-      var drag = this.drag.bind(this)
+    var listener = e => {
+      this.down(point(e))
+      var drag = e => {
+        this.drag(point(e))
+        e.stopPropagation()
+        e.preventDefault()
+      }
       var up = e => {
-        this.up(e)
+        this.up(point(e))
         canvas.removeEventListener('mousemove', drag)
         canvas.removeEventListener('mouseup', up)
+        canvas.removeEventListener('touchmove', drag)
+        canvas.removeEventListener('touchend', up)
+        e.stopPropagation()
+        e.preventDefault()
       }
       canvas.addEventListener('mousemove', drag)
       canvas.addEventListener('mouseup', up)
-    })
+      canvas.addEventListener('touchmove', drag)
+      canvas.addEventListener('touchend', up)
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    element.addEventListener('mousedown', listener)
+    element.addEventListener('touchstart', listener)
     this.element = element
     this.canvas = canvas
   }
@@ -97,17 +117,16 @@ class Flight extends Draggable {
     this.radius = radius
     this.element.setAttribute('r', this.radius)
   }
-  down (e) {
+  down (point) {
     if (this.route) this.canvas.removeChild(this.route.element)
-    this.route = new Route(point(e), this.canvas)
+    this.route = new Route(point, this.canvas)
     this.canvas.insertBefore(this.route.element, this.canvas.firstChild)
     this.route.drawing = true
   }
-  drag (e) {
-    var p = point(e)
-    this.route.addPoint(p)
+  drag (point) {
+    this.route.addPoint(point)
   }
-  up () {
+  up (point) {
     this.route.drawing = false
   }
   step () {
