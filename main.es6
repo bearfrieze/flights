@@ -53,6 +53,19 @@ function pointerify (parent, canvas) {
   canvas.addEventListener('touchstart', listener)
 }
 
+function requestFullscreen(element) {
+  // https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
+  if (element.requestFullscreen) {
+    element.requestFullscreen()
+  } else if (element.msRequestFullscreen) {
+    element.msRequestFullscreen()
+  } else if (element.mozRequestFullScreen) {
+    element.mozRequestFullScreen()
+  } else if (element.webkitRequestFullscreen) {
+    element.webkitRequestFullscreen()
+  }
+}
+
 class Route {
   constructor (origin, scene) {
     var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1})
@@ -162,7 +175,6 @@ class Game {
     this.camera = new THREE.OrthographicCamera(width / - 2, width / 2, height / 2, height / - 2, 1, 1000)
     this.camera.position.z = 1
     this.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true})
-    this.renderer.setClearColor(0x333333, 1)
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
@@ -229,10 +241,20 @@ class Game {
   }
 }
 
-var game = new Game()
-var loop = () => {
-  game.step()
-  game.render()
-  window.requestAnimationFrame(loop)
+var element = document.documentElement
+var fullscreen = () => {
+  requestFullscreen(document.documentElement)
+  element.removeEventListener('mousedown', fullscreen)
+  element.removeEventListener('touchdown', fullscreen)
+  setTimeout(() => {
+    var game = new Game()
+    var loop = () => {
+      game.step()
+      game.render()
+      window.requestAnimationFrame(loop)
+    }
+    window.requestAnimationFrame(loop)
+  }, 500)
 }
-window.requestAnimationFrame(loop)
+element.addEventListener('mousedown', fullscreen)
+element.addEventListener('touchdown', fullscreen)
