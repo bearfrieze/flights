@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.html",
   "scripts": {
-    "dev": "webpack --watch"
+    "dev": "webpack -d --watch"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,8 @@
     "babel-loader": "^5.3.2",
     "browser-sync": "^2.9.3",
     "browser-sync-webpack-plugin": "^1.0.0",
-    "webpack": "^1.12.2"
+    "webpack": "^1.12.2",
+    "webpack-notifier": "^1.2.1"
   },
   "dependencies": {
     "three": "^0.71.1"

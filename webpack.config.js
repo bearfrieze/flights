@@ -1,4 +1,5 @@
 var BrowserSyncPlugin = require('browser-sync-webpack-plugin')
+var WebpackNotifierPlugin = require('webpack-notifier')
 
 module.exports = {
   entry: "./main.es6",
@@ -19,6 +20,7 @@ module.exports = {
       host: 'localhost',
       port: 8080,
       server: { baseDir: ['.'] }
-    })
+    }),
+    new WebpackNotifierPlugin(),
   ]
 }

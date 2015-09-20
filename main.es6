@@ -1,131 +1,138 @@
-var three = require('three')
+var THREE = require('three')
 
-function svg (tag, attributes) {
-  var element = document.createElementNS('http://www.w3.org/2000/svg', tag)
-  for (let key in attributes) element.setAttribute(key, attributes[key])
-  return element
-}
+const MAX_POINTS = 500
 
-function point (e) {
-  if ('changedTouches' in e) {
-    return [e.changedTouches[0].pageX, e.changedTouches[0].pageY]
-  }
-  if ('targetTouches' in e) {
-    return [e.targetTouches[0].pageX, e.targetTouches[0].pageY]
-  }
-  return [e.offsetX, e.offsetY]
-}
-
-function distance (one, two) {
-  return Math.sqrt(Math.pow(two[0] - one[0], 2) + Math.pow(two[1] - one[1], 2))
-}
-
-function between (one, two, units) {
-  var fraction = units / distance(one, two)
-  return [
-    one[0] + (two[0] - one[0]) * fraction,
-    one[1] + (two[1] - one[1]) * fraction
-  ]
-}
-
-function edgePosition (canvas, axis, side) {
-  var bounds = [canvas.offsetWidth, canvas.offsetHeight]
-  var position = []
+function edgeVector (axis, side) {
+  var bounds = [window.innerWidth, window.innerHeight]
+  var position = new THREE.Vector3()
   for (var i = 0; i < 2; i++) {
     if (axis === i) {
-      position[i] = Math.random() * bounds[i]
+      position.setComponent(i, -bounds[i] / 2 + Math.random() * bounds[i])
     } else {
-      position[i] = side * bounds[i]
+      position.setComponent(i, side === 0 ? -bounds[i] / 2 : bounds[i] / 2)
     }
   }
   return position
 }
 
+function point (e) {
+  var pointer
+  if ('changedTouches' in e) {
+    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY)
+  } else if ('targetTouches' in e) {
+    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY)
+  } else {
+    pointer = new THREE.Vector3(e.offsetX, e.offsetY)
+  }
+  pointer.x -= window.innerWidth/2
+  pointer.y = window.innerHeight/2 - pointer.y
+  return pointer
+}
+
+function pointerify (parent, canvas) {
+  var listener = e => {
+    parent.down(point(e))
+    var move = e => {
+      parent.move(point(e))
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    var up = e => {
+      parent.up(point(e))
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    canvas.addEventListener('mousemove', move)
+    canvas.addEventListener('mouseup', up)
+    canvas.addEventListener('touchmove', move)
+    canvas.addEventListener('touchend', up)
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  canvas.addEventListener('mousedown', listener)
+  canvas.addEventListener('touchstart', listener)
+}
+
 class Route {
-  constructor (origin, canvas) {
-    this.element = canvas.insertBefore(svg('polyline'), canvas.firstChild)
-    this.points = []
-    this.addPoint(origin)
-    this.location = origin
-    this.progress = 0
-    this.canvas = canvas
+  constructor (origin, scene) {
+    var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1})
+    var geometry = new THREE.BufferGeometry()
+    var positions = new Float32Array(MAX_POINTS * 3)
+    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geometry.setDrawRange(0, 2)
+    this.mesh = new THREE.Line(geometry, material)
+    this.mesh.renderOrder = 0
+    scene.add(this.mesh)
+    this.scene = scene
+    this.reset(origin)
   }
   addPoint (point) {
     var last = this.points[this.points.length - 1]
-    if (this.points.length && distance(last, point) < 10.0) return
+    if (this.points.length && last.distanceTo(point) < 10.0) return
     this.points.push(point)
     this.render()
   }
   travel (units) {
     this.progress += units
+    var changed = false
     while (this.points.length > 1) {
-      var dist = distance(this.points[0], this.points[1])
+      var dist = this.points[0].distanceTo(this.points[1])
       if (this.progress < dist) break
       this.progress -= dist
       this.points.shift()
+      changed = true
     }
-    this.render()
-    if (this.points.length === 1 && !this.drawing) {
-      this.points.push(edgePosition(this.canvas, Math.round(Math.random()), Math.round(Math.random())))
+    if (changed) this.render()
+    if (this.points.length === 1) {
+      if (!this.drawing) {
+        this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())))
+      } else {
+        return
+      }
     }
-    if (this.points.length === 1) return this.location = this.points[0]
-    this.location = between(this.points[0], this.points[1], this.progress)
+    this.location = this.points[1].clone()
+      .sub(this.points[0])
+      .setLength(this.progress)
+      .add(this.points[0])
   }
   render () {
-    this.element.setAttribute('points', this.points.map(p => p.join()).join(' '))
+    var positions = this.mesh.geometry.attributes.position.array
+    for (var i = 0; i < this.points.length && i < MAX_POINTS; i++) {
+      positions[i * 3 + 0] = this.points[i].x
+      positions[i * 3 + 1] = this.points[i].y
+    }
+    this.mesh.geometry.setDrawRange(0, this.points.length)
+    this.mesh.geometry.attributes.position.needsUpdate = true
+  }
+  reset (point) {
+    this.progress = 0
+    this.points = []
+    this.addPoint(point)
+    this.location = point
   }
   destroy () {
-    this.canvas.removeChild(this.element)
+    this.scene.remove(this.mesh)
   }
 }
 
-class Draggable {
-  constructor (element, canvas) {
-    var listener = e => {
-      this.down(point(e))
-      var drag = e => {
-        this.drag(point(e))
-        e.stopPropagation()
-        e.preventDefault()
-      }
-      var up = e => {
-        this.up(point(e))
-        canvas.removeEventListener('mousemove', drag)
-        canvas.removeEventListener('mouseup', up)
-        canvas.removeEventListener('touchmove', drag)
-        canvas.removeEventListener('touchend', up)
-        e.stopPropagation()
-        e.preventDefault()
-      }
-      canvas.addEventListener('mousemove', drag)
-      canvas.addEventListener('mouseup', up)
-      canvas.addEventListener('touchmove', drag)
-      canvas.addEventListener('touchend', up)
-      e.stopPropagation()
-      e.preventDefault()
-    }
-    element.addEventListener('mousedown', listener)
-    element.addEventListener('touchstart', listener)
-  }
-}
-
-class Flight extends Draggable {
-  constructor (start, stop, radius, canvas) {
-    var element = canvas.appendChild(svg('circle'))
-    super(element, canvas)
-    this.element = element
-    this.canvas = canvas
-    this.route = new Route(start, this.canvas)
+class Flight {
+  constructor (start, stop, radius, scene) {
+    this.route = new Route(start, scene)
     this.route.addPoint(stop)
     this.radius = radius
-    this.element.setAttribute('r', this.radius)
+    var material = new THREE.MeshBasicMaterial()
+    var geometry = new THREE.CircleGeometry(radius, 32)
+    this.mesh = new THREE.Mesh(geometry, material)
+    this.mesh.renderOrder = 1
+    this.render()
+    scene.add(this.mesh)
+    this.scene = scene
   }
   down (point) {
-    if (this.route) this.route.destroy()
-    this.route = new Route(point, this.canvas)
+    this.route.reset(this.route.location)
     this.route.drawing = true
   }
-  drag (point) {
+  move (point) {
     this.route.addPoint(point)
   }
   up (point) {
@@ -135,51 +142,40 @@ class Flight extends Draggable {
     this.route.travel(0.5)
   }
   render () {
-    this.element.setAttribute('cx', this.route.location[0])
-    this.element.setAttribute('cy', this.route.location[1])
-    this.element.setAttribute('fill', this.colliding ? 'red' : 'black')
+    this.mesh.position.copy(this.route.location)
+    this.mesh.material.color.setStyle(this.colliding ? 'red' : 'black')
   }
-  distance (flight) {
-    return distance(this.route.location, flight.route.location) - this.radius - flight.radius
+  distanceTo (flight) {
+    return this.route.location.distanceTo(flight.route.location) - this.radius - flight.radius
   }
   destroy () {
-    this.canvas.removeChild(this.element)
+    this.scene.remove(this.mesh)
     this.route.destroy()
-  }
-}
-
-class Target {
-  constructor (location, canvas) {
-    this.location = location
-    this.canvas = canvas
-    this.element = this.canvas.appendChild(svg('circle'))
-    console.log(this.element)
-    this.element.setAttribute('cx', this.location[0])
-    this.element.setAttribute('cy', this.location[1])
-    this.element.setAttribute('r', 20)
-    this.element.setAttribute('fill', 'blue')
   }
 }
 
 class Game {
   constructor () {
-    this.canvas = document.body.appendChild(svg('svg', {
-      width: '100%',
-      height: '100%'
-    }))
-    this.targets = [new Target(
-      [this.canvas.offsetWidth / 2, this.canvas.offsetHeight / 2],
-      this.canvas.appendChild(svg('g'))
-    )]
+    var width = window.innerWidth
+    var height = window.innerHeight
+    this.scene = new THREE.Scene()
+    this.camera = new THREE.OrthographicCamera(width / - 2, width / 2, height / 2, height / - 2, 1, 1000)
+    this.camera.position.z = 1
+    this.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true})
+    this.renderer.setClearColor(0x333333, 1)
+    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.sortObjects = true
+    document.body.appendChild(this.renderer.domElement)
+    pointerify(this, this.renderer.domElement)
     this.flights = []
-    this.difficulty = 5
+    this.difficulty = 10
   }
   spawnFlight () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = edgePosition(this.canvas, axis, side)
-    var stop = edgePosition(this.canvas, axis, (side + 1) % 2)
-    this.flights.push(new Flight(start, stop, 20, this.canvas))
+    var start = edgeVector(axis, side)
+    var stop = edgeVector(axis, (side + 1) % 2)
+    this.flights.push(new Flight(start, stop, 20, this.scene))
   }
   step () {
     this.flights.forEach(flight => {
@@ -190,7 +186,7 @@ class Game {
       var flight = this.flights[i]
       for (var j = 0; j < i; j++) {
         var other = this.flights[j]
-        var distance = flight.distance(other)
+        var distance = flight.distanceTo(other)
         if (distance <= 0) {
           flight.crashed = true
           other.crashed = true
@@ -211,11 +207,32 @@ class Game {
     }
     while (this.flights.length < this.difficulty) this.spawnFlight()
   }
+  render () {
+    this.renderer.render(this.scene, this.camera)
+  }
+  down (p) {
+    for (let flight of this.flights) {
+      if (p.distanceTo(flight.route.location) < flight.radius * 1.5) {
+        this.selected = flight
+        flight.down(p)
+      }
+    }
+  }
+  move (p) {
+    if (!this.selected) return
+    this.selected.move(p)
+  }
+  up (p) {
+    if (!this.selected) return
+    this.selected.up(p)
+    this.selected = false
+  }
 }
 
 var game = new Game()
 var loop = () => {
   game.step()
+  game.render()
   window.requestAnimationFrame(loop)
 }
 window.requestAnimationFrame(loop)
