@@ -57,8 +57,15 @@
 	
 	var MAX_POINTS = 500;
 	
+	var width = screen.width;
+	var height = screen.height;
+	
+	var materials = {
+	  route: new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
+	};
+	
 	function edgeVector(axis, side) {
-	  var bounds = [window.innerWidth, window.innerHeight];
+	  var bounds = [width, height];
 	  var position = new THREE.Vector3();
 	  for (var i = 0; i < 2; i++) {
 	    if (axis === i) {
@@ -79,33 +86,45 @@
 	  } else {
 	    pointer = new THREE.Vector3(e.offsetX, e.offsetY);
 	  }
-	  pointer.x -= window.innerWidth / 2;
-	  pointer.y = window.innerHeight / 2 - pointer.y;
+	  pointer.x -= width / 2;
+	  pointer.y = height / 2 - pointer.y;
 	  return pointer;
 	}
 	
 	function pointerify(parent, canvas) {
-	  var listener = function listener(e) {
-	    parent.down(point(e));
-	    var move = function move(e) {
-	      parent.move(point(e));
-	      e.stopPropagation();
-	      e.preventDefault();
+	  var listeners = [{ name: 'mousedown', action: parent.down }, { name: 'touchstart', action: parent.down }, { name: 'mousemove', action: parent.move }, { name: 'touchmove', action: parent.move }, { name: 'mouseup', action: parent.up }, { name: 'touchend', action: parent.up }];
+	  var _iteratorNormalCompletion = true;
+	  var _didIteratorError = false;
+	  var _iteratorError = undefined;
+	
+	  try {
+	    var _loop = function () {
+	      var listener = _step.value;
+	
+	      canvas.addEventListener(listener.name, function (e) {
+	        listener.action.bind(parent)(point(e));
+	        e.stopPropagation();
+	        e.preventDefault();
+	      });
 	    };
-	    var up = function up(e) {
-	      parent.up(point(e));
-	      e.stopPropagation();
-	      e.preventDefault();
-	    };
-	    canvas.addEventListener('mousemove', move);
-	    canvas.addEventListener('mouseup', up);
-	    canvas.addEventListener('touchmove', move);
-	    canvas.addEventListener('touchend', up);
-	    e.stopPropagation();
-	    e.preventDefault();
-	  };
-	  canvas.addEventListener('mousedown', listener);
-	  canvas.addEventListener('touchstart', listener);
+	
+	    for (var _iterator = listeners[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	      _loop();
+	    }
+	  } catch (err) {
+	    _didIteratorError = true;
+	    _iteratorError = err;
+	  } finally {
+	    try {
+	      if (!_iteratorNormalCompletion && _iterator['return']) {
+	        _iterator['return']();
+	      }
+	    } finally {
+	      if (_didIteratorError) {
+	        throw _iteratorError;
+	      }
+	    }
+	  }
 	}
 	
 	function requestFullscreen(element) {
@@ -122,18 +141,18 @@
 	}
 	
 	var Route = (function () {
-	  function Route(origin, scene) {
+	  function Route(origin, flight, scene) {
 	    _classCallCheck(this, Route);
 	
-	    var material = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 });
+	    this.flight = flight;
+	    this.scene = scene;
 	    var geometry = new THREE.BufferGeometry();
 	    var positions = new Float32Array(MAX_POINTS * 3);
 	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 	    geometry.setDrawRange(0, 2);
-	    this.mesh = new THREE.Line(geometry, material);
-	    this.mesh.renderOrder = 0;
+	    this.mesh = new THREE.Line(geometry, materials.route);
+	    this.mesh.renderOrder = 1;
 	    scene.add(this.mesh);
-	    this.scene = scene;
 	    this.reset(origin);
 	  }
 	
@@ -148,6 +167,7 @@
 	  }, {
 	    key: 'travel',
 	    value: function travel(units) {
+	      if (this.drawing && this.points.length === 1) return;
 	      this.progress += units;
 	      var changed = false;
 	      while (this.points.length > 1) {
@@ -158,14 +178,11 @@
 	        changed = true;
 	      }
 	      if (changed) this.render();
-	      if (this.points.length === 1) {
-	        if (!this.drawing) {
-	          this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())));
-	        } else {
-	          return;
-	        }
+	      if (this.flight.goal && this.points.length === 1) return this.flight.landed = true;
+	      while (this.points.length === 1) {
+	        this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
-	      this.location = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
+	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
 	    }
 	  }, {
 	    key: 'render',
@@ -184,7 +201,7 @@
 	      this.progress = 0;
 	      this.points = [];
 	      this.addPoint(point);
-	      this.location = point;
+	      this.position = point;
 	    }
 	  }, {
 	    key: 'destroy',
@@ -196,17 +213,31 @@
 	  return Route;
 	})();
 	
+	var Target = function Target(position, radius, scene) {
+	  _classCallCheck(this, Target);
+	
+	  this.position = position;
+	  this.radius = radius;
+	  this.scene = scene;
+	  var material = new THREE.MeshBasicMaterial();
+	  var geometry = new THREE.CircleGeometry(radius, 32);
+	  this.mesh = new THREE.Mesh(geometry, material);
+	  this.mesh.position.copy(position);
+	  this.mesh.renderOrder = 0;
+	  scene.add(this.mesh);
+	};
+	
 	var Flight = (function () {
 	  function Flight(start, stop, radius, scene) {
 	    _classCallCheck(this, Flight);
 	
-	    this.route = new Route(start, scene);
+	    this.route = new Route(start, this, scene);
 	    this.route.addPoint(stop);
 	    this.radius = radius;
 	    var material = new THREE.MeshBasicMaterial();
 	    var geometry = new THREE.CircleGeometry(radius, 32);
 	    this.mesh = new THREE.Mesh(geometry, material);
-	    this.mesh.renderOrder = 1;
+	    this.mesh.renderOrder = 2;
 	    this.render();
 	    scene.add(this.mesh);
 	    this.scene = scene;
@@ -215,7 +246,7 @@
 	  _createClass(Flight, [{
 	    key: 'down',
 	    value: function down(point) {
-	      this.route.reset(this.route.location);
+	      this.route.reset(this.route.position);
 	      this.route.drawing = true;
 	    }
 	  }, {
@@ -236,13 +267,16 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      this.mesh.position.copy(this.route.location);
-	      this.mesh.material.color.setStyle(this.colliding ? 'red' : 'black');
+	      this.mesh.position.copy(this.route.position);
+	      var color = this.mesh.material.color;
+	      if (this.colliding) return color.setStyle('red');
+	      if (this.goal) return color.setStyle('green');
+	      color.setStyle('black');
 	    }
 	  }, {
 	    key: 'distanceTo',
 	    value: function distanceTo(flight) {
-	      return this.route.location.distanceTo(flight.route.location) - this.radius - flight.radius;
+	      return this.route.position.distanceTo(flight.route.position) - this.radius - flight.radius;
 	    }
 	  }, {
 	    key: 'destroy',
@@ -259,18 +293,17 @@
 	  function Game() {
 	    _classCallCheck(this, Game);
 	
-	    var width = window.innerWidth;
-	    var height = window.innerHeight;
 	    this.scene = new THREE.Scene();
 	    this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
 	    this.camera.position.z = 1;
 	    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-	    this.renderer.setSize(window.innerWidth, window.innerHeight);
+	    this.renderer.setSize(width, height);
 	    this.renderer.sortObjects = true;
 	    document.body.appendChild(this.renderer.domElement);
 	    pointerify(this, this.renderer.domElement);
 	    this.flights = [];
-	    this.difficulty = 10;
+	    this.difficulty = 4;
+	    this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
 	  }
 	
 	  _createClass(Game, [{
@@ -305,14 +338,16 @@
 	      }
 	      for (var i = 0; i < this.flights.length; i++) {
 	        var flight = this.flights[i];
-	        if (flight.crashed) {
+	        if (flight.landed) {
 	          this.flights.splice(i, 1);
 	          flight.destroy();
 	          continue;
 	        }
+	        if (flight.crashed) return false;
 	        flight.render();
 	      }
 	      while (this.flights.length < this.difficulty) this.spawnFlight();
+	      return true;
 	    }
 	  }, {
 	    key: 'render',
@@ -322,30 +357,30 @@
 	  }, {
 	    key: 'down',
 	    value: function down(p) {
-	      var _iteratorNormalCompletion = true;
-	      var _didIteratorError = false;
-	      var _iteratorError = undefined;
+	      var _iteratorNormalCompletion2 = true;
+	      var _didIteratorError2 = false;
+	      var _iteratorError2 = undefined;
 	
 	      try {
-	        for (var _iterator = this.flights[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	          var flight = _step.value;
+	        for (var _iterator2 = this.flights[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	          var flight = _step2.value;
 	
-	          if (p.distanceTo(flight.route.location) < flight.radius * 1.5) {
+	          if (p.distanceTo(flight.route.position) < flight.radius * 1.5) {
 	            this.selected = flight;
 	            flight.down(p);
 	          }
 	        }
 	      } catch (err) {
-	        _didIteratorError = true;
-	        _iteratorError = err;
+	        _didIteratorError2 = true;
+	        _iteratorError2 = err;
 	      } finally {
 	        try {
-	          if (!_iteratorNormalCompletion && _iterator['return']) {
-	            _iterator['return']();
+	          if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+	            _iterator2['return']();
 	          }
 	        } finally {
-	          if (_didIteratorError) {
-	            throw _iteratorError;
+	          if (_didIteratorError2) {
+	            throw _iteratorError2;
 	          }
 	        }
 	      }
@@ -360,6 +395,9 @@
 	    key: 'up',
 	    value: function up(p) {
 	      if (!this.selected) return;
+	      var points = this.selected.route.points;
+	      var dist = points[points.length - 1].distanceTo(this.targets[0].position);
+	      this.selected.goal = dist < this.targets[0].radius;
 	      this.selected.up(p);
 	      this.selected = false;
 	    }
@@ -373,15 +411,13 @@
 	  requestFullscreen(document.documentElement);
 	  element.removeEventListener('mousedown', fullscreen);
 	  element.removeEventListener('touchdown', fullscreen);
-	  setTimeout(function () {
-	    var game = new Game();
-	    var loop = function loop() {
-	      game.step();
-	      game.render();
-	      window.requestAnimationFrame(loop);
-	    };
+	  var game = new Game();
+	  var loop = function loop() {
+	    if (!game.step()) return;
+	    game.render();
 	    window.requestAnimationFrame(loop);
-	  }, 500);
+	  };
+	  window.requestAnimationFrame(loop);
 	};
 	element.addEventListener('mousedown', fullscreen);
 	element.addEventListener('touchdown', fullscreen);

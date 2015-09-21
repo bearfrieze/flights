@@ -2,8 +2,15 @@ var THREE = require('three')
 
 const MAX_POINTS = 500
 
+var width = screen.width
+var height = screen.height
+
+var materials = {
+  route: new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1}),
+}
+
 function edgeVector (axis, side) {
-  var bounds = [window.innerWidth, window.innerHeight]
+  var bounds = [width, height]
   var position = new THREE.Vector3()
   for (var i = 0; i < 2; i++) {
     if (axis === i) {
@@ -24,33 +31,27 @@ function point (e) {
   } else {
     pointer = new THREE.Vector3(e.offsetX, e.offsetY)
   }
-  pointer.x -= window.innerWidth/2
-  pointer.y = window.innerHeight/2 - pointer.y
+  pointer.x -= width/2
+  pointer.y = height/2 - pointer.y
   return pointer
 }
 
 function pointerify (parent, canvas) {
-  var listener = e => {
-    parent.down(point(e))
-    var move = e => {
-      parent.move(point(e))
+  var listeners = [
+    {name: 'mousedown', action: parent.down},
+    {name: 'touchstart', action: parent.down},
+    {name: 'mousemove', action: parent.move},
+    {name: 'touchmove', action: parent.move},
+    {name: 'mouseup', action: parent.up},
+    {name: 'touchend', action: parent.up},
+  ]
+  for (let listener of listeners) {
+    canvas.addEventListener(listener.name, e => {
+      listener.action.bind(parent)(point(e))
       e.stopPropagation()
       e.preventDefault()
-    }
-    var up = e => {
-      parent.up(point(e))
-      e.stopPropagation()
-      e.preventDefault()
-    }
-    canvas.addEventListener('mousemove', move)
-    canvas.addEventListener('mouseup', up)
-    canvas.addEventListener('touchmove', move)
-    canvas.addEventListener('touchend', up)
-    e.stopPropagation()
-    e.preventDefault()
+    })
   }
-  canvas.addEventListener('mousedown', listener)
-  canvas.addEventListener('touchstart', listener)
 }
 
 function requestFullscreen(element) {
@@ -67,16 +68,16 @@ function requestFullscreen(element) {
 }
 
 class Route {
-  constructor (origin, scene) {
-    var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1})
+  constructor (origin, flight, scene) {
+    this.flight = flight
+    this.scene = scene
     var geometry = new THREE.BufferGeometry()
     var positions = new Float32Array(MAX_POINTS * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
     geometry.setDrawRange(0, 2)
-    this.mesh = new THREE.Line(geometry, material)
-    this.mesh.renderOrder = 0
+    this.mesh = new THREE.Line(geometry, materials.route)
+    this.mesh.renderOrder = 1
     scene.add(this.mesh)
-    this.scene = scene
     this.reset(origin)
   }
   addPoint (point) {
@@ -86,6 +87,7 @@ class Route {
     this.render()
   }
   travel (units) {
+    if (this.drawing && this.points.length === 1) return
     this.progress += units
     var changed = false
     while (this.points.length > 1) {
@@ -96,14 +98,11 @@ class Route {
       changed = true
     }
     if (changed) this.render()
-    if (this.points.length === 1) {
-      if (!this.drawing) {
-        this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())))
-      } else {
-        return
-      }
+    if (this.flight.goal && this.points.length === 1) return this.flight.landed = true
+    while(this.points.length === 1) {
+      this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())))
     }
-    this.location = this.points[1].clone()
+    this.position = this.points[1].clone()
       .sub(this.points[0])
       .setLength(this.progress)
       .add(this.points[0])
@@ -121,28 +120,42 @@ class Route {
     this.progress = 0
     this.points = []
     this.addPoint(point)
-    this.location = point
+    this.position = point
   }
   destroy () {
     this.scene.remove(this.mesh)
   }
 }
 
+class Target {
+  constructor (position, radius, scene) {
+    this.position = position
+    this.radius = radius
+    this.scene = scene
+    var material = new THREE.MeshBasicMaterial()
+    var geometry = new THREE.CircleGeometry(radius, 32)
+    this.mesh = new THREE.Mesh(geometry, material)
+    this.mesh.position.copy(position)
+    this.mesh.renderOrder = 0
+    scene.add(this.mesh)
+  }
+}
+
 class Flight {
   constructor (start, stop, radius, scene) {
-    this.route = new Route(start, scene)
+    this.route = new Route(start, this, scene)
     this.route.addPoint(stop)
     this.radius = radius
     var material = new THREE.MeshBasicMaterial()
     var geometry = new THREE.CircleGeometry(radius, 32)
     this.mesh = new THREE.Mesh(geometry, material)
-    this.mesh.renderOrder = 1
+    this.mesh.renderOrder = 2
     this.render()
     scene.add(this.mesh)
     this.scene = scene
   }
   down (point) {
-    this.route.reset(this.route.location)
+    this.route.reset(this.route.position)
     this.route.drawing = true
   }
   move (point) {
@@ -155,11 +168,14 @@ class Flight {
     this.route.travel(0.5)
   }
   render () {
-    this.mesh.position.copy(this.route.location)
-    this.mesh.material.color.setStyle(this.colliding ? 'red' : 'black')
+    this.mesh.position.copy(this.route.position)
+    var color = this.mesh.material.color
+    if (this.colliding) return color.setStyle('red')
+    if (this.goal) return color.setStyle('green')
+    color.setStyle('black')
   }
   distanceTo (flight) {
-    return this.route.location.distanceTo(flight.route.location) - this.radius - flight.radius
+    return this.route.position.distanceTo(flight.route.position) - this.radius - flight.radius
   }
   destroy () {
     this.scene.remove(this.mesh)
@@ -169,18 +185,17 @@ class Flight {
 
 class Game {
   constructor () {
-    var width = window.innerWidth
-    var height = window.innerHeight
     this.scene = new THREE.Scene()
     this.camera = new THREE.OrthographicCamera(width / - 2, width / 2, height / 2, height / - 2, 1, 1000)
     this.camera.position.z = 1
     this.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true})
-    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.setSize(width, height)
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
     pointerify(this, this.renderer.domElement)
     this.flights = []
-    this.difficulty = 10
+    this.difficulty = 4
+    this.targets = [new Target(new THREE.Vector3(), 40, this.scene)]
   }
   spawnFlight () {
     var axis = Math.round(Math.random())
@@ -210,21 +225,23 @@ class Game {
     }
     for (var i = 0; i < this.flights.length; i++) {
       var flight = this.flights[i]
-      if (flight.crashed) {
+      if (flight.landed) {
         this.flights.splice(i, 1)
         flight.destroy()
         continue
       }
+      if (flight.crashed) return false
       flight.render()
     }
     while (this.flights.length < this.difficulty) this.spawnFlight()
+    return true
   }
   render () {
     this.renderer.render(this.scene, this.camera)
   }
   down (p) {
     for (let flight of this.flights) {
-      if (p.distanceTo(flight.route.location) < flight.radius * 1.5) {
+      if (p.distanceTo(flight.route.position) < flight.radius * 1.5) {
         this.selected = flight
         flight.down(p)
       }
@@ -236,6 +253,9 @@ class Game {
   }
   up (p) {
     if (!this.selected) return
+    var points = this.selected.route.points
+    var dist = points[points.length - 1].distanceTo(this.targets[0].position)
+    this.selected.goal = dist < this.targets[0].radius
     this.selected.up(p)
     this.selected = false
   }
@@ -246,15 +266,13 @@ var fullscreen = () => {
   requestFullscreen(document.documentElement)
   element.removeEventListener('mousedown', fullscreen)
   element.removeEventListener('touchdown', fullscreen)
-  setTimeout(() => {
-    var game = new Game()
-    var loop = () => {
-      game.step()
-      game.render()
-      window.requestAnimationFrame(loop)
-    }
+  var game = new Game()
+  var loop = () => {
+    if (!game.step()) return
+    game.render()
     window.requestAnimationFrame(loop)
-  }, 500)
+  }
+  window.requestAnimationFrame(loop)
 }
 element.addEventListener('mousedown', fullscreen)
 element.addEventListener('touchdown', fullscreen)
