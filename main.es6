@@ -6,6 +6,7 @@ const MAX_POINTS = 500
 
 var width = screen.width
 var height = screen.height
+var bounds = [width, height]
 
 var materials = {
   route: new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1}),
@@ -44,7 +45,11 @@ class Route {
     if (changed) this.render()
     if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true
     while(this.points.length === 1) {
-      this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())))
+      this.addPoint(utils.edgeVector(
+        Math.round(Math.random()),
+        Math.round(Math.random()),
+        bounds
+      ))
     }
     this.position = this.points[1].clone()
       .sub(this.points[0])
@@ -144,8 +149,8 @@ class Game {
   spawnUfo () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = utils.edgeVector(axis, side)
-    var stop = utils.edgeVector(axis, (side + 1) % 2)
+    var start = utils.edgeVector(axis, side, bounds)
+    var stop = utils.edgeVector(axis, (side + 1) % 2, bounds)
     this.ufos.push(new Ufo(start, stop, 20, this.scene))
   }
   step () {

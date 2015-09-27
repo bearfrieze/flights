@@ -61,6 +61,7 @@
 	
 	var width = screen.width;
 	var height = screen.height;
+	var bounds = [width, height];
 	
 	var materials = {
 	  route: new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
@@ -106,7 +107,7 @@
 	      if (changed) this.render();
 	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
 	      while (this.points.length === 1) {
-	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())));
+	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random()), bounds));
 	      }
 	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
 	    }
@@ -237,8 +238,8 @@
 	    value: function spawnUfo() {
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
-	      var start = utils.edgeVector(axis, side);
-	      var stop = utils.edgeVector(axis, (side + 1) % 2);
+	      var start = utils.edgeVector(axis, side, bounds);
+	      var stop = utils.edgeVector(axis, (side + 1) % 2, bounds);
 	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
 	    }
 	  }, {
@@ -1239,11 +1240,7 @@
 	
 	var utils = {};
 	
-	var width = screen.width;
-	var height = screen.height;
-	
-	utils.edgeVector = function (axis, side) {
-	  var bounds = [width, height];
+	utils.edgeVector = function (axis, side, bounds) {
 	  var position = new THREE.Vector3();
 	  for (var i = 0; i < 2; i++) {
 	    if (axis === i) {
@@ -1255,21 +1252,20 @@
 	  return position;
 	};
 	
-	utils.point = function (e) {
-	  var pointer;
-	  if ('changedTouches' in e) {
-	    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
-	  } else if ('targetTouches' in e) {
-	    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
-	  } else {
-	    pointer = new THREE.Vector3(e.offsetX, e.offsetY);
-	  }
-	  pointer.x -= width / 2;
-	  pointer.y = height / 2 - pointer.y;
-	  return pointer;
-	};
-	
 	utils.pointerify = function (parent, canvas) {
+	  var point = function point(e) {
+	    var pointer;
+	    if ('changedTouches' in e) {
+	      pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
+	    } else if ('targetTouches' in e) {
+	      pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
+	    } else {
+	      pointer = new THREE.Vector3(e.offsetX, e.offsetY);
+	    }
+	    pointer.x -= canvas.offsetWidth / 2;
+	    pointer.y = canvas.offsetHeight / 2 - pointer.y;
+	    return pointer;
+	  };
 	  var listeners = [{ name: 'mousedown', action: parent.down }, { name: 'touchstart', action: parent.down }, { name: 'mousemove', action: parent.move }, { name: 'touchmove', action: parent.move }, { name: 'mouseup', action: parent.up }, { name: 'touchend', action: parent.up }];
 	  var _iteratorNormalCompletion = true;
 	  var _didIteratorError = false;
@@ -1280,7 +1276,7 @@
 	      var listener = _step.value;
 	
 	      canvas.addEventListener(listener.name, function (e) {
-	        listener.action.bind(parent)(utils.point(e));
+	        listener.action.bind(parent)(point(e));
 	        e.stopPropagation();
 	        e.preventDefault();
 	      });

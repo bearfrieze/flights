@@ -2,11 +2,7 @@ var THREE = require('three')
 
 var utils = {}
 
-var width = screen.width
-var height = screen.height
-
-utils.edgeVector = function (axis, side) {
-  var bounds = [width, height]
+utils.edgeVector = function (axis, side, bounds) {
   var position = new THREE.Vector3()
   for (var i = 0; i < 2; i++) {
     if (axis === i) {
@@ -18,21 +14,20 @@ utils.edgeVector = function (axis, side) {
   return position
 }
 
-utils.point = function (e) {
-  var pointer
-  if ('changedTouches' in e) {
-    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY)
-  } else if ('targetTouches' in e) {
-    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY)
-  } else {
-    pointer = new THREE.Vector3(e.offsetX, e.offsetY)
-  }
-  pointer.x -= width/2
-  pointer.y = height/2 - pointer.y
-  return pointer
-}
-
 utils.pointerify = function (parent, canvas) {
+  var point = function (e) {
+    var pointer
+    if ('changedTouches' in e) {
+      pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY)
+    } else if ('targetTouches' in e) {
+      pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY)
+    } else {
+      pointer = new THREE.Vector3(e.offsetX, e.offsetY)
+    }
+    pointer.x -= canvas.offsetWidth/2
+    pointer.y = canvas.offsetHeight/2 - pointer.y
+    return pointer
+  }
   var listeners = [
     {name: 'mousedown', action: parent.down},
     {name: 'touchstart', action: parent.down},
@@ -43,7 +38,7 @@ utils.pointerify = function (parent, canvas) {
   ]
   for (let listener of listeners) {
     canvas.addEventListener(listener.name, e => {
-      listener.action.bind(parent)(utils.point(e))
+      listener.action.bind(parent)(point(e))
       e.stopPropagation()
       e.preventDefault()
     })
