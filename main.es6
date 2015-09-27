@@ -68,8 +68,8 @@ function requestFullscreen(element) {
 }
 
 class Route {
-  constructor (origin, flight, scene) {
-    this.flight = flight
+  constructor (origin, ufo, scene) {
+    this.ufo = ufo
     this.scene = scene
     var geometry = new THREE.BufferGeometry()
     var positions = new Float32Array(MAX_POINTS * 3)
@@ -98,7 +98,7 @@ class Route {
       changed = true
     }
     if (changed) this.render()
-    if (this.flight.goal && this.points.length === 1) return this.flight.landed = true
+    if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true
     while(this.points.length === 1) {
       this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())))
     }
@@ -141,7 +141,7 @@ class Target {
   }
 }
 
-class Flight {
+class Ufo {
   constructor (start, stop, radius, scene) {
     this.route = new Route(start, this, scene)
     this.route.addPoint(stop)
@@ -174,8 +174,8 @@ class Flight {
     if (this.goal) return color.setStyle('green')
     color.setStyle('black')
   }
-  distanceTo (flight) {
-    return this.route.position.distanceTo(flight.route.position) - this.radius - flight.radius
+  distanceTo (ufo) {
+    return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius
   }
   destroy () {
     this.scene.remove(this.mesh)
@@ -193,57 +193,57 @@ class Game {
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
     pointerify(this, this.renderer.domElement)
-    this.flights = []
+    this.ufos = []
     this.difficulty = 4
     this.targets = [new Target(new THREE.Vector3(), 40, this.scene)]
   }
-  spawnFlight () {
+  spawnUfo () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
     var start = edgeVector(axis, side)
     var stop = edgeVector(axis, (side + 1) % 2)
-    this.flights.push(new Flight(start, stop, 20, this.scene))
+    this.ufos.push(new Ufo(start, stop, 20, this.scene))
   }
   step () {
-    this.flights.forEach(flight => {
-      flight.step()
-      flight.colliding = false
+    this.ufos.forEach(ufo => {
+      ufo.step()
+      ufo.colliding = false
     })
-    for (var i = 0; i < this.flights.length; i++) {
-      var flight = this.flights[i]
+    for (var i = 0; i < this.ufos.length; i++) {
+      var ufo = this.ufos[i]
       for (var j = 0; j < i; j++) {
-        var other = this.flights[j]
-        var distance = flight.distanceTo(other)
+        var other = this.ufos[j]
+        var distance = ufo.distanceTo(other)
         if (distance <= 0) {
-          flight.crashed = true
+          ufo.crashed = true
           other.crashed = true
         } else if (distance < 50) {
-          flight.colliding = true
+          ufo.colliding = true
           other.colliding = true
         }
       }
     }
-    for (var i = 0; i < this.flights.length; i++) {
-      var flight = this.flights[i]
-      if (flight.landed) {
-        this.flights.splice(i, 1)
-        flight.destroy()
+    for (var i = 0; i < this.ufos.length; i++) {
+      var ufo = this.ufos[i]
+      if (ufo.landed) {
+        this.ufos.splice(i, 1)
+        ufo.destroy()
         continue
       }
-      if (flight.crashed) return false
-      flight.render()
+      if (ufo.crashed) return false
+      ufo.render()
     }
-    while (this.flights.length < this.difficulty) this.spawnFlight()
+    while (this.ufos.length < this.difficulty) this.spawnUfo()
     return true
   }
   render () {
     this.renderer.render(this.scene, this.camera)
   }
   down (p) {
-    for (let flight of this.flights) {
-      if (p.distanceTo(flight.route.position) < flight.radius * 1.5) {
-        this.selected = flight
-        flight.down(p)
+    for (let ufo of this.ufos) {
+      if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
+        this.selected = ufo
+        ufo.down(p)
       }
     }
   }

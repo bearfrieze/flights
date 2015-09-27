@@ -141,10 +141,10 @@
 	}
 	
 	var Route = (function () {
-	  function Route(origin, flight, scene) {
+	  function Route(origin, ufo, scene) {
 	    _classCallCheck(this, Route);
 	
-	    this.flight = flight;
+	    this.ufo = ufo;
 	    this.scene = scene;
 	    var geometry = new THREE.BufferGeometry();
 	    var positions = new Float32Array(MAX_POINTS * 3);
@@ -178,7 +178,7 @@
 	        changed = true;
 	      }
 	      if (changed) this.render();
-	      if (this.flight.goal && this.points.length === 1) return this.flight.landed = true;
+	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
 	      while (this.points.length === 1) {
 	        this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
@@ -227,9 +227,9 @@
 	  scene.add(this.mesh);
 	};
 	
-	var Flight = (function () {
-	  function Flight(start, stop, radius, scene) {
-	    _classCallCheck(this, Flight);
+	var Ufo = (function () {
+	  function Ufo(start, stop, radius, scene) {
+	    _classCallCheck(this, Ufo);
 	
 	    this.route = new Route(start, this, scene);
 	    this.route.addPoint(stop);
@@ -243,7 +243,7 @@
 	    this.scene = scene;
 	  }
 	
-	  _createClass(Flight, [{
+	  _createClass(Ufo, [{
 	    key: 'down',
 	    value: function down(point) {
 	      this.route.reset(this.route.position);
@@ -275,8 +275,8 @@
 	    }
 	  }, {
 	    key: 'distanceTo',
-	    value: function distanceTo(flight) {
-	      return this.route.position.distanceTo(flight.route.position) - this.radius - flight.radius;
+	    value: function distanceTo(ufo) {
+	      return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius;
 	    }
 	  }, {
 	    key: 'destroy',
@@ -286,7 +286,7 @@
 	    }
 	  }]);
 	
-	  return Flight;
+	  return Ufo;
 	})();
 	
 	var Game = (function () {
@@ -301,52 +301,52 @@
 	    this.renderer.sortObjects = true;
 	    document.body.appendChild(this.renderer.domElement);
 	    pointerify(this, this.renderer.domElement);
-	    this.flights = [];
+	    this.ufos = [];
 	    this.difficulty = 4;
 	    this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
 	  }
 	
 	  _createClass(Game, [{
-	    key: 'spawnFlight',
-	    value: function spawnFlight() {
+	    key: 'spawnUfo',
+	    value: function spawnUfo() {
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
 	      var start = edgeVector(axis, side);
 	      var stop = edgeVector(axis, (side + 1) % 2);
-	      this.flights.push(new Flight(start, stop, 20, this.scene));
+	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
 	    }
 	  }, {
 	    key: 'step',
 	    value: function step() {
-	      this.flights.forEach(function (flight) {
-	        flight.step();
-	        flight.colliding = false;
+	      this.ufos.forEach(function (ufo) {
+	        ufo.step();
+	        ufo.colliding = false;
 	      });
-	      for (var i = 0; i < this.flights.length; i++) {
-	        var flight = this.flights[i];
+	      for (var i = 0; i < this.ufos.length; i++) {
+	        var ufo = this.ufos[i];
 	        for (var j = 0; j < i; j++) {
-	          var other = this.flights[j];
-	          var distance = flight.distanceTo(other);
+	          var other = this.ufos[j];
+	          var distance = ufo.distanceTo(other);
 	          if (distance <= 0) {
-	            flight.crashed = true;
+	            ufo.crashed = true;
 	            other.crashed = true;
 	          } else if (distance < 50) {
-	            flight.colliding = true;
+	            ufo.colliding = true;
 	            other.colliding = true;
 	          }
 	        }
 	      }
-	      for (var i = 0; i < this.flights.length; i++) {
-	        var flight = this.flights[i];
-	        if (flight.landed) {
-	          this.flights.splice(i, 1);
-	          flight.destroy();
+	      for (var i = 0; i < this.ufos.length; i++) {
+	        var ufo = this.ufos[i];
+	        if (ufo.landed) {
+	          this.ufos.splice(i, 1);
+	          ufo.destroy();
 	          continue;
 	        }
-	        if (flight.crashed) return false;
-	        flight.render();
+	        if (ufo.crashed) return false;
+	        ufo.render();
 	      }
-	      while (this.flights.length < this.difficulty) this.spawnFlight();
+	      while (this.ufos.length < this.difficulty) this.spawnUfo();
 	      return true;
 	    }
 	  }, {
@@ -362,12 +362,12 @@
 	      var _iteratorError2 = undefined;
 	
 	      try {
-	        for (var _iterator2 = this.flights[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	          var flight = _step2.value;
+	        for (var _iterator2 = this.ufos[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	          var ufo = _step2.value;
 	
-	          if (p.distanceTo(flight.route.position) < flight.radius * 1.5) {
-	            this.selected = flight;
-	            flight.down(p);
+	          if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
+	            this.selected = ufo;
+	            ufo.down(p);
 	          }
 	        }
 	      } catch (err) {
