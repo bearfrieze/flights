@@ -4,8 +4,8 @@ var utils = require('./utils.es6')
 
 const MAX_POINTS = 500
 
-var width = screen.width
-var height = screen.height
+var width = document.body.offsetWidth
+var height = document.body.offsetHeight
 var bounds = [width, height]
 
 var materials = {
@@ -88,6 +88,9 @@ class Target {
     this.mesh.renderOrder = 0
     scene.add(this.mesh)
   }
+  destroy () {
+    this.scene.remove(this.mesh)
+  }
 }
 
 class Ufo {
@@ -142,8 +145,13 @@ class Game {
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
     utils.pointerify(this, this.renderer.domElement)
-    this.ufos = []
     this.difficulty = 4
+    this.reset()
+  }
+  reset () {
+    if (this.ufos) this.ufos.forEach(ufo => ufo.destroy())
+    if (this.targets) this.targets.forEach(target => target.destroy())
+    this.ufos = []
     this.targets = [new Target(new THREE.Vector3(), 40, this.scene)]
   }
   spawnUfo () {
@@ -210,18 +218,21 @@ class Game {
   }
 }
 
-var element = document.documentElement
-var fullscreen = () => {
-  utils.requestFullscreen(document.documentElement)
-  element.removeEventListener('mousedown', fullscreen)
-  element.removeEventListener('touchdown', fullscreen)
+// var element = document.documentElement
+// var fullscreen = () => {
+//   utils.requestFullscreen(document.documentElement)
+//   element.removeEventListener('mousedown', fullscreen)
+//   element.removeEventListener('touchdown', fullscreen)
   var game = new Game()
   var loop = () => {
-    if (!game.step()) return
+    if (!game.step()) {
+      game.reset()
+      return setTimeout(loop, 1000)
+    }
     game.render()
     window.requestAnimationFrame(loop)
   }
   window.requestAnimationFrame(loop)
-}
-element.addEventListener('mousedown', fullscreen)
-element.addEventListener('touchdown', fullscreen)
+// }
+// element.addEventListener('mousedown', fullscreen)
+// element.addEventListener('touchdown', fullscreen)

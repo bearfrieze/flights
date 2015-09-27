@@ -59,8 +59,8 @@
 	
 	var MAX_POINTS = 500;
 	
-	var width = screen.width;
-	var height = screen.height;
+	var width = document.body.offsetWidth;
+	var height = document.body.offsetHeight;
 	var bounds = [width, height];
 	
 	var materials = {
@@ -140,19 +140,30 @@
 	  return Route;
 	})();
 	
-	var Target = function Target(position, radius, scene) {
-	  _classCallCheck(this, Target);
+	var Target = (function () {
+	  function Target(position, radius, scene) {
+	    _classCallCheck(this, Target);
 	
-	  this.position = position;
-	  this.radius = radius;
-	  this.scene = scene;
-	  var material = new THREE.MeshBasicMaterial();
-	  var geometry = new THREE.CircleGeometry(radius, 32);
-	  this.mesh = new THREE.Mesh(geometry, material);
-	  this.mesh.position.copy(position);
-	  this.mesh.renderOrder = 0;
-	  scene.add(this.mesh);
-	};
+	    this.position = position;
+	    this.radius = radius;
+	    this.scene = scene;
+	    var material = new THREE.MeshBasicMaterial();
+	    var geometry = new THREE.CircleGeometry(radius, 32);
+	    this.mesh = new THREE.Mesh(geometry, material);
+	    this.mesh.position.copy(position);
+	    this.mesh.renderOrder = 0;
+	    scene.add(this.mesh);
+	  }
+	
+	  _createClass(Target, [{
+	    key: 'destroy',
+	    value: function destroy() {
+	      this.scene.remove(this.mesh);
+	    }
+	  }]);
+	
+	  return Target;
+	})();
 	
 	var Ufo = (function () {
 	  function Ufo(start, stop, radius, scene) {
@@ -228,12 +239,29 @@
 	    this.renderer.sortObjects = true;
 	    document.body.appendChild(this.renderer.domElement);
 	    utils.pointerify(this, this.renderer.domElement);
-	    this.ufos = [];
 	    this.difficulty = 4;
-	    this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
+	    this.reset();
 	  }
 	
+	  // var element = document.documentElement
+	  // var fullscreen = () => {
+	  //   utils.requestFullscreen(document.documentElement)
+	  //   element.removeEventListener('mousedown', fullscreen)
+	  //   element.removeEventListener('touchdown', fullscreen)
+	
 	  _createClass(Game, [{
+	    key: 'reset',
+	    value: function reset() {
+	      if (this.ufos) this.ufos.forEach(function (ufo) {
+	        return ufo.destroy();
+	      });
+	      if (this.targets) this.targets.forEach(function (target) {
+	        return target.destroy();
+	      });
+	      this.ufos = [];
+	      this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
+	    }
+	  }, {
 	    key: 'spawnUfo',
 	    value: function spawnUfo() {
 	      var axis = Math.round(Math.random());
@@ -333,21 +361,19 @@
 	  return Game;
 	})();
 	
-	var element = document.documentElement;
-	var fullscreen = function fullscreen() {
-	  utils.requestFullscreen(document.documentElement);
-	  element.removeEventListener('mousedown', fullscreen);
-	  element.removeEventListener('touchdown', fullscreen);
-	  var game = new Game();
-	  var loop = function loop() {
-	    if (!game.step()) return;
-	    game.render();
-	    window.requestAnimationFrame(loop);
-	  };
+	var game = new Game();
+	var loop = function loop() {
+	  if (!game.step()) {
+	    game.reset();
+	    return setTimeout(loop, 1000);
+	  }
+	  game.render();
 	  window.requestAnimationFrame(loop);
 	};
-	element.addEventListener('mousedown', fullscreen);
-	element.addEventListener('touchdown', fullscreen);
+	window.requestAnimationFrame(loop);
+	// }
+	// element.addEventListener('mousedown', fullscreen)
+	// element.addEventListener('touchdown', fullscreen)
 
 /***/ },
 /* 1 */
