@@ -4,17 +4,14 @@ var materials = require('./materials.es6')
 var Ufo = require('./ufo.es6')
 var Target = require('./Target.es6')
 
-var width = document.body.offsetWidth
-var height = document.body.offsetHeight
-var bounds = [width, height]
-
 module.exports = class Game {
   constructor () {
+    var bounds = this.bounds = [document.body.offsetWidth, document.body.offsetHeight]
     this.scene = new THREE.Scene()
-    this.camera = new THREE.OrthographicCamera(width / - 2, width / 2, height / 2, height / - 2, 1, 1000)
+    this.camera = new THREE.OrthographicCamera(bounds[0] / - 2, bounds[0] / 2, bounds[1] / 2, bounds[1] / - 2, 1, 1000)
     this.camera.position.z = 1
     this.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true})
-    this.renderer.setSize(width, height)
+    this.renderer.setSize(bounds[0], bounds[1])
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
     utils.pointerify(this, this.renderer.domElement)
@@ -30,8 +27,8 @@ module.exports = class Game {
   spawnUfo () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = utils.edgeVector(axis, side, bounds)
-    var stop = utils.edgeVector(axis, (side + 1) % 2, bounds)
+    var start = utils.edgeVector(axis, side, this.bounds)
+    var stop = utils.edgeVector(axis, (side + 1) % 2, this.bounds)
     this.ufos.push(new Ufo(start, stop, 20, this.scene))
   }
   step () {

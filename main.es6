@@ -1,5 +1,3 @@
-var THREE = require('three')
-
 var utils = require('./utils.es6')
 var Game = require('./game.es6')
 

@@ -1,4 +1,5 @@
 var THREE = require('three')
+var utils = require('./utils.es6')
 var materials = require('./materials.es6')
 
 const MAX_POINTS = 500
