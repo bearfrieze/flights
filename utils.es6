@@ -2,7 +2,11 @@ var THREE = require('three')
 
 var utils = {}
 
-utils.edgeVector = function (axis, side, bounds) {
+utils.bounds = function () {
+  return [document.body.offsetWidth, document.body.offsetHeight]
+}
+utils.edgeVector = function (axis, side) {
+  var bounds = utils.bounds()
   var position = new THREE.Vector3()
   for (var i = 0; i < 2; i++) {
     if (axis === i) {

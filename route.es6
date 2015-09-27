@@ -52,8 +52,7 @@ module.exports = class Route {
     while(this.points.length === 1) {
       this.addPoint(utils.edgeVector(
         Math.round(Math.random()),
-        Math.round(Math.random()),
-        bounds
+        Math.round(Math.random())
       ))
     }
     this.position = this.points[1].clone()

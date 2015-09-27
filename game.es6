@@ -6,7 +6,7 @@ var Target = require('./Target.es6')
 
 module.exports = class Game {
   constructor () {
-    var bounds = this.bounds = [document.body.offsetWidth, document.body.offsetHeight]
+    var bounds = utils.bounds()
     this.scene = new THREE.Scene()
     this.camera = new THREE.OrthographicCamera(bounds[0] / - 2, bounds[0] / 2, bounds[1] / 2, bounds[1] / - 2, 1, 1000)
     this.camera.position.z = 1
@@ -27,8 +27,8 @@ module.exports = class Game {
   spawnUfo () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = utils.edgeVector(axis, side, this.bounds)
-    var stop = utils.edgeVector(axis, (side + 1) % 2, this.bounds)
+    var start = utils.edgeVector(axis, side)
+    var stop = utils.edgeVector(axis, (side + 1) % 2)
     this.ufos.push(new Ufo(start, stop, 20, this.scene))
   }
   step () {

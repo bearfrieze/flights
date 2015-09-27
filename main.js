@@ -962,7 +962,11 @@
 	
 	var utils = {};
 	
-	utils.edgeVector = function (axis, side, bounds) {
+	utils.bounds = function () {
+	  return [document.body.offsetWidth, document.body.offsetHeight];
+	};
+	utils.edgeVector = function (axis, side) {
+	  var bounds = utils.bounds();
 	  var position = new THREE.Vector3();
 	  for (var i = 0; i < 2; i++) {
 	    if (axis === i) {
@@ -1110,7 +1114,7 @@
 	      if (changed) this.render();
 	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
 	      while (this.points.length === 1) {
-	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random()), bounds));
+	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
 	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
 	    }
@@ -1261,7 +1265,7 @@
 	  function Game() {
 	    _classCallCheck(this, Game);
 	
-	    var bounds = this.bounds = [document.body.offsetWidth, document.body.offsetHeight];
+	    var bounds = utils.bounds();
 	    this.scene = new THREE.Scene();
 	    this.camera = new THREE.OrthographicCamera(bounds[0] / -2, bounds[0] / 2, bounds[1] / 2, bounds[1] / -2, 1, 1000);
 	    this.camera.position.z = 1;
@@ -1291,8 +1295,8 @@
 	    value: function spawnUfo() {
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
-	      var start = utils.edgeVector(axis, side, this.bounds);
-	      var stop = utils.edgeVector(axis, (side + 1) % 2, this.bounds);
+	      var start = utils.edgeVector(axis, side);
+	      var stop = utils.edgeVector(axis, (side + 1) % 2);
 	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
 	    }
 	  }, {
