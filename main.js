@@ -49,318 +49,16 @@
 
 	'use strict';
 	
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-	
 	var THREE = __webpack_require__(/*! three */ 1);
 	
 	var utils = __webpack_require__(/*! ./utils.es6 */ 2);
+	var Game = __webpack_require__(/*! ./game.es6 */ 7);
 	
-	var MAX_POINTS = 500;
-	
-	var width = document.body.offsetWidth;
-	var height = document.body.offsetHeight;
-	var bounds = [width, height];
-	
-	var materials = {
-	  route: new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
-	};
-	
-	var Route = (function () {
-	  function Route(origin, ufo, scene) {
-	    _classCallCheck(this, Route);
-	
-	    this.ufo = ufo;
-	    this.scene = scene;
-	    var geometry = new THREE.BufferGeometry();
-	    var positions = new Float32Array(MAX_POINTS * 3);
-	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-	    geometry.setDrawRange(0, 2);
-	    this.mesh = new THREE.Line(geometry, materials.route);
-	    this.mesh.renderOrder = 1;
-	    scene.add(this.mesh);
-	    this.reset(origin);
-	  }
-	
-	  _createClass(Route, [{
-	    key: 'addPoint',
-	    value: function addPoint(point) {
-	      var last = this.points[this.points.length - 1];
-	      if (this.points.length && last.distanceTo(point) < 10.0) return;
-	      this.points.push(point);
-	      this.render();
-	    }
-	  }, {
-	    key: 'travel',
-	    value: function travel(units) {
-	      if (this.drawing && this.points.length === 1) return;
-	      this.progress += units;
-	      var changed = false;
-	      while (this.points.length > 1) {
-	        var dist = this.points[0].distanceTo(this.points[1]);
-	        if (this.progress < dist) break;
-	        this.progress -= dist;
-	        this.points.shift();
-	        changed = true;
-	      }
-	      if (changed) this.render();
-	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
-	      while (this.points.length === 1) {
-	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random()), bounds));
-	      }
-	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      var positions = this.mesh.geometry.attributes.position.array;
-	      for (var i = 0; i < this.points.length && i < MAX_POINTS; i++) {
-	        positions[i * 3 + 0] = this.points[i].x;
-	        positions[i * 3 + 1] = this.points[i].y;
-	      }
-	      this.mesh.geometry.setDrawRange(0, this.points.length);
-	      this.mesh.geometry.attributes.position.needsUpdate = true;
-	    }
-	  }, {
-	    key: 'reset',
-	    value: function reset(point) {
-	      this.progress = 0;
-	      this.points = [];
-	      this.addPoint(point);
-	      this.position = point;
-	    }
-	  }, {
-	    key: 'destroy',
-	    value: function destroy() {
-	      this.scene.remove(this.mesh);
-	    }
-	  }]);
-	
-	  return Route;
-	})();
-	
-	var Target = (function () {
-	  function Target(position, radius, scene) {
-	    _classCallCheck(this, Target);
-	
-	    this.position = position;
-	    this.radius = radius;
-	    this.scene = scene;
-	    var material = new THREE.MeshBasicMaterial();
-	    var geometry = new THREE.CircleGeometry(radius, 32);
-	    this.mesh = new THREE.Mesh(geometry, material);
-	    this.mesh.position.copy(position);
-	    this.mesh.renderOrder = 0;
-	    scene.add(this.mesh);
-	  }
-	
-	  _createClass(Target, [{
-	    key: 'destroy',
-	    value: function destroy() {
-	      this.scene.remove(this.mesh);
-	    }
-	  }]);
-	
-	  return Target;
-	})();
-	
-	var Ufo = (function () {
-	  function Ufo(start, stop, radius, scene) {
-	    _classCallCheck(this, Ufo);
-	
-	    this.route = new Route(start, this, scene);
-	    this.route.addPoint(stop);
-	    this.radius = radius;
-	    var material = new THREE.MeshBasicMaterial();
-	    var geometry = new THREE.CircleGeometry(radius, 32);
-	    this.mesh = new THREE.Mesh(geometry, material);
-	    this.mesh.renderOrder = 2;
-	    this.render();
-	    scene.add(this.mesh);
-	    this.scene = scene;
-	  }
-	
-	  _createClass(Ufo, [{
-	    key: 'down',
-	    value: function down(point) {
-	      this.route.reset(this.route.position);
-	      this.route.drawing = true;
-	    }
-	  }, {
-	    key: 'move',
-	    value: function move(point) {
-	      this.route.addPoint(point);
-	    }
-	  }, {
-	    key: 'up',
-	    value: function up(point) {
-	      this.route.drawing = false;
-	    }
-	  }, {
-	    key: 'step',
-	    value: function step() {
-	      this.route.travel(0.5);
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      this.mesh.position.copy(this.route.position);
-	      var color = this.mesh.material.color;
-	      if (this.colliding) return color.setStyle('red');
-	      if (this.goal) return color.setStyle('green');
-	      color.setStyle('black');
-	    }
-	  }, {
-	    key: 'distanceTo',
-	    value: function distanceTo(ufo) {
-	      return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius;
-	    }
-	  }, {
-	    key: 'destroy',
-	    value: function destroy() {
-	      this.scene.remove(this.mesh);
-	      this.route.destroy();
-	    }
-	  }]);
-	
-	  return Ufo;
-	})();
-	
-	var Game = (function () {
-	  function Game() {
-	    _classCallCheck(this, Game);
-	
-	    this.scene = new THREE.Scene();
-	    this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-	    this.camera.position.z = 1;
-	    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-	    this.renderer.setSize(width, height);
-	    this.renderer.sortObjects = true;
-	    document.body.appendChild(this.renderer.domElement);
-	    utils.pointerify(this, this.renderer.domElement);
-	    this.difficulty = 4;
-	    this.reset();
-	  }
-	
-	  // var element = document.documentElement
-	  // var fullscreen = () => {
-	  //   utils.requestFullscreen(document.documentElement)
-	  //   element.removeEventListener('mousedown', fullscreen)
-	  //   element.removeEventListener('touchdown', fullscreen)
-	
-	  _createClass(Game, [{
-	    key: 'reset',
-	    value: function reset() {
-	      if (this.ufos) this.ufos.forEach(function (ufo) {
-	        return ufo.destroy();
-	      });
-	      if (this.targets) this.targets.forEach(function (target) {
-	        return target.destroy();
-	      });
-	      this.ufos = [];
-	      this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
-	    }
-	  }, {
-	    key: 'spawnUfo',
-	    value: function spawnUfo() {
-	      var axis = Math.round(Math.random());
-	      var side = Math.round(Math.random());
-	      var start = utils.edgeVector(axis, side, bounds);
-	      var stop = utils.edgeVector(axis, (side + 1) % 2, bounds);
-	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
-	    }
-	  }, {
-	    key: 'step',
-	    value: function step() {
-	      this.ufos.forEach(function (ufo) {
-	        ufo.step();
-	        ufo.colliding = false;
-	      });
-	      for (var i = 0; i < this.ufos.length; i++) {
-	        var ufo = this.ufos[i];
-	        for (var j = 0; j < i; j++) {
-	          var other = this.ufos[j];
-	          var distance = ufo.distanceTo(other);
-	          if (distance <= 0) {
-	            ufo.crashed = true;
-	            other.crashed = true;
-	          } else if (distance < 50) {
-	            ufo.colliding = true;
-	            other.colliding = true;
-	          }
-	        }
-	      }
-	      for (var i = 0; i < this.ufos.length; i++) {
-	        var ufo = this.ufos[i];
-	        if (ufo.landed) {
-	          this.ufos.splice(i, 1);
-	          ufo.destroy();
-	          continue;
-	        }
-	        if (ufo.crashed) return false;
-	        ufo.render();
-	      }
-	      while (this.ufos.length < this.difficulty) this.spawnUfo();
-	      return true;
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      this.renderer.render(this.scene, this.camera);
-	    }
-	  }, {
-	    key: 'down',
-	    value: function down(p) {
-	      var _iteratorNormalCompletion = true;
-	      var _didIteratorError = false;
-	      var _iteratorError = undefined;
-	
-	      try {
-	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	          var ufo = _step.value;
-	
-	          if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
-	            this.selected = ufo;
-	            ufo.down(p);
-	          }
-	        }
-	      } catch (err) {
-	        _didIteratorError = true;
-	        _iteratorError = err;
-	      } finally {
-	        try {
-	          if (!_iteratorNormalCompletion && _iterator['return']) {
-	            _iterator['return']();
-	          }
-	        } finally {
-	          if (_didIteratorError) {
-	            throw _iteratorError;
-	          }
-	        }
-	      }
-	    }
-	  }, {
-	    key: 'move',
-	    value: function move(p) {
-	      if (!this.selected) return;
-	      this.selected.move(p);
-	    }
-	  }, {
-	    key: 'up',
-	    value: function up(p) {
-	      if (!this.selected) return;
-	      var points = this.selected.route.points;
-	      var dist = points[points.length - 1].distanceTo(this.targets[0].position);
-	      this.selected.goal = dist < this.targets[0].radius;
-	      this.selected.up(p);
-	      this.selected = false;
-	    }
-	  }]);
-	
-	  return Game;
-	})();
-	
+	// var element = document.documentElement
+	// var fullscreen = () => {
+	//   utils.requestFullscreen(document.documentElement)
+	//   element.removeEventListener('mousedown', fullscreen)
+	//   element.removeEventListener('touchdown', fullscreen)
 	var game = new Game();
 	var loop = function loop() {
 	  if (!game.step()) {
@@ -1341,6 +1039,383 @@
 	};
 	
 	module.exports = utils;
+
+/***/ },
+/* 3 */
+/*!*******************!*\
+  !*** ./route.es6 ***!
+  \*******************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	var materials = __webpack_require__(/*! ./materials.es6 */ 4);
+	
+	var MAX_POINTS = 500;
+	
+	module.exports = (function () {
+	  function Route(origin, ufo, scene) {
+	    _classCallCheck(this, Route);
+	
+	    this.ufo = ufo;
+	    this.scene = scene;
+	    var geometry = new THREE.BufferGeometry();
+	    var positions = new Float32Array(MAX_POINTS * 3);
+	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+	    geometry.setDrawRange(0, 2);
+	    this.mesh = new THREE.Line(geometry, materials.route);
+	    this.mesh.renderOrder = 1;
+	    scene.add(this.mesh);
+	    this.reset(origin);
+	  }
+	
+	  _createClass(Route, [{
+	    key: 'addPoint',
+	    value: function addPoint(point) {
+	      var last = this.points[this.points.length - 1];
+	      if (this.points.length && last.distanceTo(point) < 10.0) return;
+	      this.points.push(point);
+	      this.render();
+	    }
+	  }, {
+	    key: 'travel',
+	    value: function travel(units) {
+	      if (this.drawing && this.points.length === 1) return;
+	      this.progress += units;
+	      var changed = false;
+	      while (this.points.length > 1) {
+	        var dist = this.points[0].distanceTo(this.points[1]);
+	        if (this.progress < dist) break;
+	        this.progress -= dist;
+	        this.points.shift();
+	        changed = true;
+	      }
+	      if (changed) this.render();
+	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
+	      while (this.points.length === 1) {
+	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random()), bounds));
+	      }
+	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      var positions = this.mesh.geometry.attributes.position.array;
+	      for (var i = 0; i < this.points.length && i < MAX_POINTS; i++) {
+	        positions[i * 3 + 0] = this.points[i].x;
+	        positions[i * 3 + 1] = this.points[i].y;
+	      }
+	      this.mesh.geometry.setDrawRange(0, this.points.length);
+	      this.mesh.geometry.attributes.position.needsUpdate = true;
+	    }
+	  }, {
+	    key: 'reset',
+	    value: function reset(point) {
+	      this.progress = 0;
+	      this.points = [];
+	      this.addPoint(point);
+	      this.position = point;
+	    }
+	  }, {
+	    key: 'destroy',
+	    value: function destroy() {
+	      this.scene.remove(this.mesh);
+	    }
+	  }]);
+	
+	  return Route;
+	})();
+
+/***/ },
+/* 4 */
+/*!***********************!*\
+  !*** ./materials.es6 ***!
+  \***********************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	
+	module.exports = {
+	  route: new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
+	};
+
+/***/ },
+/* 5 */,
+/* 6 */
+/*!*****************!*\
+  !*** ./ufo.es6 ***!
+  \*****************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	var materials = __webpack_require__(/*! ./materials.es6 */ 4);
+	var Route = __webpack_require__(/*! ./route.es6 */ 3);
+	
+	module.exports = (function () {
+	  function Ufo(start, stop, radius, scene) {
+	    _classCallCheck(this, Ufo);
+	
+	    this.route = new Route(start, this, scene);
+	    this.route.addPoint(stop);
+	    this.radius = radius;
+	    var material = new THREE.MeshBasicMaterial();
+	    var geometry = new THREE.CircleGeometry(radius, 32);
+	    this.mesh = new THREE.Mesh(geometry, material);
+	    this.mesh.renderOrder = 2;
+	    this.render();
+	    scene.add(this.mesh);
+	    this.scene = scene;
+	  }
+	
+	  _createClass(Ufo, [{
+	    key: 'down',
+	    value: function down(point) {
+	      this.route.reset(this.route.position);
+	      this.route.drawing = true;
+	    }
+	  }, {
+	    key: 'move',
+	    value: function move(point) {
+	      this.route.addPoint(point);
+	    }
+	  }, {
+	    key: 'up',
+	    value: function up(point) {
+	      this.route.drawing = false;
+	    }
+	  }, {
+	    key: 'step',
+	    value: function step() {
+	      this.route.travel(0.5);
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      this.mesh.position.copy(this.route.position);
+	      var color = this.mesh.material.color;
+	      if (this.colliding) return color.setStyle('red');
+	      if (this.goal) return color.setStyle('green');
+	      color.setStyle('black');
+	    }
+	  }, {
+	    key: 'distanceTo',
+	    value: function distanceTo(ufo) {
+	      return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius;
+	    }
+	  }, {
+	    key: 'destroy',
+	    value: function destroy() {
+	      this.scene.remove(this.mesh);
+	      this.route.destroy();
+	    }
+	  }]);
+	
+	  return Ufo;
+	})();
+
+/***/ },
+/* 7 */
+/*!******************!*\
+  !*** ./game.es6 ***!
+  \******************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	var utils = __webpack_require__(/*! ./utils.es6 */ 2);
+	var materials = __webpack_require__(/*! ./materials.es6 */ 4);
+	var Ufo = __webpack_require__(/*! ./ufo.es6 */ 6);
+	var Target = __webpack_require__(/*! ./Target.es6 */ 8);
+	
+	var width = document.body.offsetWidth;
+	var height = document.body.offsetHeight;
+	var bounds = [width, height];
+	
+	module.exports = (function () {
+	  function Game() {
+	    _classCallCheck(this, Game);
+	
+	    this.scene = new THREE.Scene();
+	    this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
+	    this.camera.position.z = 1;
+	    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+	    this.renderer.setSize(width, height);
+	    this.renderer.sortObjects = true;
+	    document.body.appendChild(this.renderer.domElement);
+	    utils.pointerify(this, this.renderer.domElement);
+	    this.difficulty = 4;
+	    this.reset();
+	  }
+	
+	  _createClass(Game, [{
+	    key: 'reset',
+	    value: function reset() {
+	      if (this.ufos) this.ufos.forEach(function (ufo) {
+	        return ufo.destroy();
+	      });
+	      if (this.targets) this.targets.forEach(function (target) {
+	        return target.destroy();
+	      });
+	      this.ufos = [];
+	      this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
+	    }
+	  }, {
+	    key: 'spawnUfo',
+	    value: function spawnUfo() {
+	      var axis = Math.round(Math.random());
+	      var side = Math.round(Math.random());
+	      var start = utils.edgeVector(axis, side, bounds);
+	      var stop = utils.edgeVector(axis, (side + 1) % 2, bounds);
+	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
+	    }
+	  }, {
+	    key: 'step',
+	    value: function step() {
+	      this.ufos.forEach(function (ufo) {
+	        ufo.step();
+	        ufo.colliding = false;
+	      });
+	      for (var i = 0; i < this.ufos.length; i++) {
+	        var ufo = this.ufos[i];
+	        for (var j = 0; j < i; j++) {
+	          var other = this.ufos[j];
+	          var distance = ufo.distanceTo(other);
+	          if (distance <= 0) {
+	            ufo.crashed = true;
+	            other.crashed = true;
+	          } else if (distance < 50) {
+	            ufo.colliding = true;
+	            other.colliding = true;
+	          }
+	        }
+	      }
+	      for (var i = 0; i < this.ufos.length; i++) {
+	        var ufo = this.ufos[i];
+	        if (ufo.landed) {
+	          this.ufos.splice(i, 1);
+	          ufo.destroy();
+	          continue;
+	        }
+	        if (ufo.crashed) return false;
+	        ufo.render();
+	      }
+	      while (this.ufos.length < this.difficulty) this.spawnUfo();
+	      return true;
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      this.renderer.render(this.scene, this.camera);
+	    }
+	  }, {
+	    key: 'down',
+	    value: function down(p) {
+	      var _iteratorNormalCompletion = true;
+	      var _didIteratorError = false;
+	      var _iteratorError = undefined;
+	
+	      try {
+	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	          var ufo = _step.value;
+	
+	          if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
+	            this.selected = ufo;
+	            ufo.down(p);
+	          }
+	        }
+	      } catch (err) {
+	        _didIteratorError = true;
+	        _iteratorError = err;
+	      } finally {
+	        try {
+	          if (!_iteratorNormalCompletion && _iterator['return']) {
+	            _iterator['return']();
+	          }
+	        } finally {
+	          if (_didIteratorError) {
+	            throw _iteratorError;
+	          }
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'move',
+	    value: function move(p) {
+	      if (!this.selected) return;
+	      this.selected.move(p);
+	    }
+	  }, {
+	    key: 'up',
+	    value: function up(p) {
+	      if (!this.selected) return;
+	      var points = this.selected.route.points;
+	      var dist = points[points.length - 1].distanceTo(this.targets[0].position);
+	      this.selected.goal = dist < this.targets[0].radius;
+	      this.selected.up(p);
+	      this.selected = false;
+	    }
+	  }]);
+	
+	  return Game;
+	})();
+
+/***/ },
+/* 8 */
+/*!********************!*\
+  !*** ./Target.es6 ***!
+  \********************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	
+	module.exports = (function () {
+	  function Target(position, radius, scene) {
+	    _classCallCheck(this, Target);
+	
+	    this.position = position;
+	    this.radius = radius;
+	    this.scene = scene;
+	    var material = new THREE.MeshBasicMaterial();
+	    var geometry = new THREE.CircleGeometry(radius, 32);
+	    this.mesh = new THREE.Mesh(geometry, material);
+	    this.mesh.position.copy(position);
+	    this.mesh.renderOrder = 0;
+	    scene.add(this.mesh);
+	  }
+	
+	  _createClass(Target, [{
+	    key: 'destroy',
+	    value: function destroy() {
+	      this.scene.remove(this.mesh);
+	    }
+	  }]);
+	
+	  return Target;
+	})();
 
 /***/ }
 /******/ ]);
