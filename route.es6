@@ -2,14 +2,16 @@ var THREE = require('three')
 var utils = require('./utils.es6')
 var materials = require('./materials.es6')
 
-const MAX_POINTS = 500
+const POINTS_MAX = 500
+const SEGMENT_MIN = 10.0
+const SEGMENT_MAX = 20.0
 
 module.exports = class Route {
   constructor (origin, ufo, scene) {
     this.ufo = ufo
     this.scene = scene
     var geometry = new THREE.BufferGeometry()
-    var positions = new Float32Array(MAX_POINTS * 3)
+    var positions = new Float32Array(POINTS_MAX * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
     geometry.setDrawRange(0, 2)
     this.mesh = new THREE.Line(geometry, materials.route)
@@ -18,8 +20,19 @@ module.exports = class Route {
     this.reset(origin)
   }
   addPoint (point) {
-    var last = this.points[this.points.length - 1]
-    if (this.points.length && last.distanceTo(point) < 10.0) return
+    if (this.points.length) {
+      var last = this.points[this.points.length - 1]
+      var distance = last.distanceTo(point)
+      if (distance < SEGMENT_MIN) return
+      if (distance > SEGMENT_MAX) {
+        var segment = point.clone().sub(last).setLength(SEGMENT_MAX)
+        last = last.clone()
+        while (distance > SEGMENT_MAX) {
+          this.points.push(last.add(segment).clone())
+          distance -= SEGMENT_MAX
+        }
+      }
+    }
     this.points.push(point)
     this.render()
   }
@@ -50,7 +63,7 @@ module.exports = class Route {
   }
   render () {
     var positions = this.mesh.geometry.attributes.position.array
-    for (var i = 0; i < this.points.length && i < MAX_POINTS; i++) {
+    for (var i = 0; i < this.points.length && i < POINTS_MAX; i++) {
       positions[i * 3 + 0] = this.points[i].x
       positions[i * 3 + 1] = this.points[i].y
     }

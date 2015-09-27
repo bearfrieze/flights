@@ -1055,7 +1055,9 @@
 	var utils = __webpack_require__(/*! ./utils.es6 */ 2);
 	var materials = __webpack_require__(/*! ./materials.es6 */ 4);
 	
-	var MAX_POINTS = 500;
+	var POINTS_MAX = 500;
+	var SEGMENT_MIN = 10.0;
+	var SEGMENT_MAX = 20.0;
 	
 	module.exports = (function () {
 	  function Route(origin, ufo, scene) {
@@ -1064,7 +1066,7 @@
 	    this.ufo = ufo;
 	    this.scene = scene;
 	    var geometry = new THREE.BufferGeometry();
-	    var positions = new Float32Array(MAX_POINTS * 3);
+	    var positions = new Float32Array(POINTS_MAX * 3);
 	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 	    geometry.setDrawRange(0, 2);
 	    this.mesh = new THREE.Line(geometry, materials.route);
@@ -1076,8 +1078,19 @@
 	  _createClass(Route, [{
 	    key: 'addPoint',
 	    value: function addPoint(point) {
-	      var last = this.points[this.points.length - 1];
-	      if (this.points.length && last.distanceTo(point) < 10.0) return;
+	      if (this.points.length) {
+	        var last = this.points[this.points.length - 1];
+	        var distance = last.distanceTo(point);
+	        if (distance < SEGMENT_MIN) return;
+	        if (distance > SEGMENT_MAX) {
+	          var segment = point.clone().sub(last).setLength(SEGMENT_MAX);
+	          last = last.clone();
+	          while (distance > SEGMENT_MAX) {
+	            this.points.push(last.add(segment).clone());
+	            distance -= SEGMENT_MAX;
+	          }
+	        }
+	      }
 	      this.points.push(point);
 	      this.render();
 	    }
@@ -1105,7 +1118,7 @@
 	    key: 'render',
 	    value: function render() {
 	      var positions = this.mesh.geometry.attributes.position.array;
-	      for (var i = 0; i < this.points.length && i < MAX_POINTS; i++) {
+	      for (var i = 0; i < this.points.length && i < POINTS_MAX; i++) {
 	        positions[i * 3 + 0] = this.points[i].x;
 	        positions[i * 3 + 1] = this.points[i].y;
 	      }
