@@ -1,5 +1,7 @@
 var THREE = require('three')
 
+var utils = require('./utils.es6')
+
 const MAX_POINTS = 500
 
 var width = screen.width
@@ -7,64 +9,6 @@ var height = screen.height
 
 var materials = {
   route: new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1}),
-}
-
-function edgeVector (axis, side) {
-  var bounds = [width, height]
-  var position = new THREE.Vector3()
-  for (var i = 0; i < 2; i++) {
-    if (axis === i) {
-      position.setComponent(i, -bounds[i] / 2 + Math.random() * bounds[i])
-    } else {
-      position.setComponent(i, side === 0 ? -bounds[i] / 2 : bounds[i] / 2)
-    }
-  }
-  return position
-}
-
-function point (e) {
-  var pointer
-  if ('changedTouches' in e) {
-    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY)
-  } else if ('targetTouches' in e) {
-    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY)
-  } else {
-    pointer = new THREE.Vector3(e.offsetX, e.offsetY)
-  }
-  pointer.x -= width/2
-  pointer.y = height/2 - pointer.y
-  return pointer
-}
-
-function pointerify (parent, canvas) {
-  var listeners = [
-    {name: 'mousedown', action: parent.down},
-    {name: 'touchstart', action: parent.down},
-    {name: 'mousemove', action: parent.move},
-    {name: 'touchmove', action: parent.move},
-    {name: 'mouseup', action: parent.up},
-    {name: 'touchend', action: parent.up},
-  ]
-  for (let listener of listeners) {
-    canvas.addEventListener(listener.name, e => {
-      listener.action.bind(parent)(point(e))
-      e.stopPropagation()
-      e.preventDefault()
-    })
-  }
-}
-
-function requestFullscreen(element) {
-  // https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
-  if (element.requestFullscreen) {
-    element.requestFullscreen()
-  } else if (element.msRequestFullscreen) {
-    element.msRequestFullscreen()
-  } else if (element.mozRequestFullScreen) {
-    element.mozRequestFullScreen()
-  } else if (element.webkitRequestFullscreen) {
-    element.webkitRequestFullscreen()
-  }
 }
 
 class Route {
@@ -100,7 +44,7 @@ class Route {
     if (changed) this.render()
     if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true
     while(this.points.length === 1) {
-      this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())))
+      this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())))
     }
     this.position = this.points[1].clone()
       .sub(this.points[0])
@@ -192,7 +136,7 @@ class Game {
     this.renderer.setSize(width, height)
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
-    pointerify(this, this.renderer.domElement)
+    utils.pointerify(this, this.renderer.domElement)
     this.ufos = []
     this.difficulty = 4
     this.targets = [new Target(new THREE.Vector3(), 40, this.scene)]
@@ -200,8 +144,8 @@ class Game {
   spawnUfo () {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
-    var start = edgeVector(axis, side)
-    var stop = edgeVector(axis, (side + 1) % 2)
+    var start = utils.edgeVector(axis, side)
+    var stop = utils.edgeVector(axis, (side + 1) % 2)
     this.ufos.push(new Ufo(start, stop, 20, this.scene))
   }
   step () {
@@ -263,7 +207,7 @@ class Game {
 
 var element = document.documentElement
 var fullscreen = () => {
-  requestFullscreen(document.documentElement)
+  utils.requestFullscreen(document.documentElement)
   element.removeEventListener('mousedown', fullscreen)
   element.removeEventListener('touchdown', fullscreen)
   var game = new Game()

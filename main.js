@@ -55,6 +55,8 @@
 	
 	var THREE = __webpack_require__(/*! three */ 1);
 	
+	var utils = __webpack_require__(/*! ./utils.es6 */ 2);
+	
 	var MAX_POINTS = 500;
 	
 	var width = screen.width;
@@ -63,82 +65,6 @@
 	var materials = {
 	  route: new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
 	};
-	
-	function edgeVector(axis, side) {
-	  var bounds = [width, height];
-	  var position = new THREE.Vector3();
-	  for (var i = 0; i < 2; i++) {
-	    if (axis === i) {
-	      position.setComponent(i, -bounds[i] / 2 + Math.random() * bounds[i]);
-	    } else {
-	      position.setComponent(i, side === 0 ? -bounds[i] / 2 : bounds[i] / 2);
-	    }
-	  }
-	  return position;
-	}
-	
-	function point(e) {
-	  var pointer;
-	  if ('changedTouches' in e) {
-	    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
-	  } else if ('targetTouches' in e) {
-	    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
-	  } else {
-	    pointer = new THREE.Vector3(e.offsetX, e.offsetY);
-	  }
-	  pointer.x -= width / 2;
-	  pointer.y = height / 2 - pointer.y;
-	  return pointer;
-	}
-	
-	function pointerify(parent, canvas) {
-	  var listeners = [{ name: 'mousedown', action: parent.down }, { name: 'touchstart', action: parent.down }, { name: 'mousemove', action: parent.move }, { name: 'touchmove', action: parent.move }, { name: 'mouseup', action: parent.up }, { name: 'touchend', action: parent.up }];
-	  var _iteratorNormalCompletion = true;
-	  var _didIteratorError = false;
-	  var _iteratorError = undefined;
-	
-	  try {
-	    var _loop = function () {
-	      var listener = _step.value;
-	
-	      canvas.addEventListener(listener.name, function (e) {
-	        listener.action.bind(parent)(point(e));
-	        e.stopPropagation();
-	        e.preventDefault();
-	      });
-	    };
-	
-	    for (var _iterator = listeners[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	      _loop();
-	    }
-	  } catch (err) {
-	    _didIteratorError = true;
-	    _iteratorError = err;
-	  } finally {
-	    try {
-	      if (!_iteratorNormalCompletion && _iterator['return']) {
-	        _iterator['return']();
-	      }
-	    } finally {
-	      if (_didIteratorError) {
-	        throw _iteratorError;
-	      }
-	    }
-	  }
-	}
-	
-	function requestFullscreen(element) {
-	  // https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
-	  if (element.requestFullscreen) {
-	    element.requestFullscreen();
-	  } else if (element.msRequestFullscreen) {
-	    element.msRequestFullscreen();
-	  } else if (element.mozRequestFullScreen) {
-	    element.mozRequestFullScreen();
-	  } else if (element.webkitRequestFullscreen) {
-	    element.webkitRequestFullscreen();
-	  }
-	}
 	
 	var Route = (function () {
 	  function Route(origin, ufo, scene) {
@@ -180,7 +106,7 @@
 	      if (changed) this.render();
 	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
 	      while (this.points.length === 1) {
-	        this.addPoint(edgeVector(Math.round(Math.random()), Math.round(Math.random())));
+	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
 	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
 	    }
@@ -300,7 +226,7 @@
 	    this.renderer.setSize(width, height);
 	    this.renderer.sortObjects = true;
 	    document.body.appendChild(this.renderer.domElement);
-	    pointerify(this, this.renderer.domElement);
+	    utils.pointerify(this, this.renderer.domElement);
 	    this.ufos = [];
 	    this.difficulty = 4;
 	    this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
@@ -311,8 +237,8 @@
 	    value: function spawnUfo() {
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
-	      var start = edgeVector(axis, side);
-	      var stop = edgeVector(axis, (side + 1) % 2);
+	      var start = utils.edgeVector(axis, side);
+	      var stop = utils.edgeVector(axis, (side + 1) % 2);
 	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
 	    }
 	  }, {
@@ -357,13 +283,13 @@
 	  }, {
 	    key: 'down',
 	    value: function down(p) {
-	      var _iteratorNormalCompletion2 = true;
-	      var _didIteratorError2 = false;
-	      var _iteratorError2 = undefined;
+	      var _iteratorNormalCompletion = true;
+	      var _didIteratorError = false;
+	      var _iteratorError = undefined;
 	
 	      try {
-	        for (var _iterator2 = this.ufos[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	          var ufo = _step2.value;
+	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	          var ufo = _step.value;
 	
 	          if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
 	            this.selected = ufo;
@@ -371,16 +297,16 @@
 	          }
 	        }
 	      } catch (err) {
-	        _didIteratorError2 = true;
-	        _iteratorError2 = err;
+	        _didIteratorError = true;
+	        _iteratorError = err;
 	      } finally {
 	        try {
-	          if (!_iteratorNormalCompletion2 && _iterator2['return']) {
-	            _iterator2['return']();
+	          if (!_iteratorNormalCompletion && _iterator['return']) {
+	            _iterator['return']();
 	          }
 	        } finally {
-	          if (_didIteratorError2) {
-	            throw _iteratorError2;
+	          if (_didIteratorError) {
+	            throw _iteratorError;
 	          }
 	        }
 	      }
@@ -408,7 +334,7 @@
 	
 	var element = document.documentElement;
 	var fullscreen = function fullscreen() {
-	  requestFullscreen(document.documentElement);
+	  utils.requestFullscreen(document.documentElement);
 	  element.removeEventListener('mousedown', fullscreen);
 	  element.removeEventListener('touchdown', fullscreen);
 	  var game = new Game();
@@ -1299,6 +1225,100 @@
 	THREE.MorphBlendMesh.prototype.update=function(a){for(var b=0,c=this.animationsList.length;b<c;b++){var d=this.animationsList[b];if(d.active){var e=d.duration/d.length;d.time+=d.direction*a;if(d.mirroredLoop){if(d.time>d.duration||0>d.time)d.direction*=-1,d.time>d.duration&&(d.time=d.duration,d.directionBackwards=!0),0>d.time&&(d.time=0,d.directionBackwards=!1)}else d.time%=d.duration,0>d.time&&(d.time+=d.duration);var g=d.start+THREE.Math.clamp(Math.floor(d.time/e),0,d.length-1),f=d.weight;g!==d.currentFrame&&
 	(this.morphTargetInfluences[d.lastFrame]=0,this.morphTargetInfluences[d.currentFrame]=1*f,this.morphTargetInfluences[g]=0,d.lastFrame=d.currentFrame,d.currentFrame=g);e=d.time%e/e;d.directionBackwards&&(e=1-e);d.currentFrame!==d.lastFrame?(this.morphTargetInfluences[d.currentFrame]=e*f,this.morphTargetInfluences[d.lastFrame]=(1-e)*f):this.morphTargetInfluences[d.currentFrame]=f}}};
 
+
+/***/ },
+/* 2 */
+/*!*******************!*\
+  !*** ./utils.es6 ***!
+  \*******************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var THREE = __webpack_require__(/*! three */ 1);
+	
+	var utils = {};
+	
+	var width = screen.width;
+	var height = screen.height;
+	
+	utils.edgeVector = function (axis, side) {
+	  var bounds = [width, height];
+	  var position = new THREE.Vector3();
+	  for (var i = 0; i < 2; i++) {
+	    if (axis === i) {
+	      position.setComponent(i, -bounds[i] / 2 + Math.random() * bounds[i]);
+	    } else {
+	      position.setComponent(i, side === 0 ? -bounds[i] / 2 : bounds[i] / 2);
+	    }
+	  }
+	  return position;
+	};
+	
+	utils.point = function (e) {
+	  var pointer;
+	  if ('changedTouches' in e) {
+	    pointer = new THREE.Vector3(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
+	  } else if ('targetTouches' in e) {
+	    pointer = new THREE.Vector3(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
+	  } else {
+	    pointer = new THREE.Vector3(e.offsetX, e.offsetY);
+	  }
+	  pointer.x -= width / 2;
+	  pointer.y = height / 2 - pointer.y;
+	  return pointer;
+	};
+	
+	utils.pointerify = function (parent, canvas) {
+	  var listeners = [{ name: 'mousedown', action: parent.down }, { name: 'touchstart', action: parent.down }, { name: 'mousemove', action: parent.move }, { name: 'touchmove', action: parent.move }, { name: 'mouseup', action: parent.up }, { name: 'touchend', action: parent.up }];
+	  var _iteratorNormalCompletion = true;
+	  var _didIteratorError = false;
+	  var _iteratorError = undefined;
+	
+	  try {
+	    var _loop = function () {
+	      var listener = _step.value;
+	
+	      canvas.addEventListener(listener.name, function (e) {
+	        listener.action.bind(parent)(utils.point(e));
+	        e.stopPropagation();
+	        e.preventDefault();
+	      });
+	    };
+	
+	    for (var _iterator = listeners[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	      _loop();
+	    }
+	  } catch (err) {
+	    _didIteratorError = true;
+	    _iteratorError = err;
+	  } finally {
+	    try {
+	      if (!_iteratorNormalCompletion && _iterator['return']) {
+	        _iterator['return']();
+	      }
+	    } finally {
+	      if (_didIteratorError) {
+	        throw _iteratorError;
+	      }
+	    }
+	  }
+	};
+	
+	utils.requestFullscreen = function (element) {
+	  // https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API
+	  if (element.requestFullscreen) {
+	    element.requestFullscreen();
+	  } else if (element.msRequestFullscreen) {
+	    element.msRequestFullscreen();
+	  } else if (element.mozRequestFullScreen) {
+	    element.mozRequestFullScreen();
+	  } else if (element.webkitRequestFullscreen) {
+	    element.webkitRequestFullscreen();
+	  }
+	};
+	
+	module.exports = utils;
 
 /***/ }
 /******/ ]);
