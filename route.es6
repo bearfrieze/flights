@@ -13,7 +13,6 @@ module.exports = class Route {
     var geometry = new THREE.BufferGeometry()
     var positions = new Float32Array(POINTS_MAX * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setDrawRange(0, 2)
     this.mesh = new THREE.Line(geometry, materials.route)
     this.mesh.renderOrder = 1
     scene.add(this.mesh)
@@ -50,6 +49,7 @@ module.exports = class Route {
     if (changed) this.render()
     if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true
     while(this.points.length === 1) {
+      this.random = true
       this.addPoint(utils.edgeVector(
         Math.round(Math.random()),
         Math.round(Math.random())
@@ -66,7 +66,7 @@ module.exports = class Route {
       positions[i * 3 + 0] = this.points[i].x
       positions[i * 3 + 1] = this.points[i].y
     }
-    this.mesh.geometry.setDrawRange(0, this.points.length)
+    this.mesh.geometry.setDrawRange(0, this.random ? 0 : this.points.length)
     this.mesh.geometry.attributes.position.needsUpdate = true
   }
   reset (point) {
@@ -74,6 +74,7 @@ module.exports = class Route {
     this.points = []
     this.addPoint(point)
     this.position = point
+    this.random = false
   }
   destroy () {
     this.scene.remove(this.mesh)

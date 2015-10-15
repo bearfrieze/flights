@@ -28,8 +28,7 @@ module.exports = class Game {
     var axis = Math.round(Math.random())
     var side = Math.round(Math.random())
     var start = utils.edgeVector(axis, side)
-    var stop = utils.edgeVector(axis, (side + 1) % 2)
-    this.ufos.push(new Ufo(start, stop, 20, this.scene))
+    this.ufos.push(new Ufo(start, 20, this.scene))
   }
   step () {
     this.ufos.forEach(ufo => {

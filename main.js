@@ -36210,8 +36210,7 @@
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
 	      var start = utils.edgeVector(axis, side);
-	      var stop = utils.edgeVector(axis, (side + 1) % 2);
-	      this.ufos.push(new Ufo(start, stop, 20, this.scene));
+	      this.ufos.push(new Ufo(start, 20, this.scene));
 	    }
 	  }, {
 	    key: 'step',
@@ -36337,11 +36336,10 @@
 	var Route = __webpack_require__(/*! ./route.es6 */ 6);
 	
 	module.exports = (function () {
-	  function Ufo(start, stop, radius, scene) {
+	  function Ufo(start, radius, scene) {
 	    _classCallCheck(this, Ufo);
 	
 	    this.route = new Route(start, this, scene);
-	    this.route.addPoint(stop);
 	    this.radius = radius;
 	    var material = new THREE.MeshBasicMaterial();
 	    var geometry = new THREE.CircleGeometry(radius, 32);
@@ -36428,7 +36426,6 @@
 	    var geometry = new THREE.BufferGeometry();
 	    var positions = new Float32Array(POINTS_MAX * 3);
 	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-	    geometry.setDrawRange(0, 2);
 	    this.mesh = new THREE.Line(geometry, materials.route);
 	    this.mesh.renderOrder = 1;
 	    scene.add(this.mesh);
@@ -36470,6 +36467,7 @@
 	      if (changed) this.render();
 	      if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true;
 	      while (this.points.length === 1) {
+	        this.random = true;
 	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
 	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
@@ -36482,7 +36480,7 @@
 	        positions[i * 3 + 0] = this.points[i].x;
 	        positions[i * 3 + 1] = this.points[i].y;
 	      }
-	      this.mesh.geometry.setDrawRange(0, this.points.length);
+	      this.mesh.geometry.setDrawRange(0, this.random ? 0 : this.points.length);
 	      this.mesh.geometry.attributes.position.needsUpdate = true;
 	    }
 	  }, {
@@ -36492,6 +36490,7 @@
 	      this.points = [];
 	      this.addPoint(point);
 	      this.position = point;
+	      this.random = false;
 	    }
 	  }, {
 	    key: 'destroy',

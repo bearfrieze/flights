@@ -3,9 +3,8 @@ var materials = require('./materials.es6')
 var Route = require('./route.es6')
 
 module.exports = class Ufo {
-  constructor (start, stop, radius, scene) {
+  constructor (start, radius, scene) {
     this.route = new Route(start, this, scene)
-    this.route.addPoint(stop)
     this.radius = radius
     var material = new THREE.MeshBasicMaterial()
     var geometry = new THREE.CircleGeometry(radius, 32)
