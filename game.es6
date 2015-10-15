@@ -44,7 +44,7 @@ module.exports = class Game {
         if (distance <= 0) {
           ufo.crashed = true
           other.crashed = true
-        } else if (distance < 50) {
+        } else if (distance < ufo.radius * 2) {
           ufo.colliding = true
           other.colliding = true
         }
