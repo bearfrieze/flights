@@ -36180,6 +36180,8 @@
 	    _classCallCheck(this, Game);
 	
 	    var bounds = utils.bounds();
+	    this.scale = Math.sqrt(Math.pow(bounds[0], 2) + Math.pow(bounds[1], 2)) / Math.pow(10, 3);
+	    console.log(this.scale);
 	    this.scene = new THREE.Scene();
 	    this.camera = new THREE.OrthographicCamera(bounds[0] / -2, bounds[0] / 2, bounds[1] / 2, bounds[1] / -2, 1, 1000);
 	    this.camera.position.z = 1;
@@ -36202,7 +36204,7 @@
 	        return target.destroy();
 	      });
 	      this.ufos = [];
-	      this.targets = [new Target(new THREE.Vector3(), 40, this.scene)];
+	      this.targets = [new Target(new THREE.Vector3(), this.scale * 20, this.scene)];
 	    }
 	  }, {
 	    key: 'spawnUfo',
@@ -36210,7 +36212,7 @@
 	      var axis = Math.round(Math.random());
 	      var side = Math.round(Math.random());
 	      var start = utils.edgeVector(axis, side);
-	      this.ufos.push(new Ufo(start, 20, this.scene));
+	      this.ufos.push(new Ufo(start, this.scale * 30, this.scene));
 	    }
 	  }, {
 	    key: 'step',
