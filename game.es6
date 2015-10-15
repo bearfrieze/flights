@@ -8,7 +8,6 @@ module.exports = class Game {
   constructor () {
     var bounds = utils.bounds()
     this.scale = Math.sqrt(Math.pow(bounds[0], 2) + Math.pow(bounds[1], 2)) / Math.pow(10, 3)
-    console.log(this.scale)
     this.scene = new THREE.Scene()
     this.camera = new THREE.OrthographicCamera(bounds[0] / - 2, bounds[0] / 2, bounds[1] / 2, bounds[1] / - 2, 1, 1000)
     this.camera.position.z = 1
@@ -24,7 +23,7 @@ module.exports = class Game {
     if (this.ufos) this.ufos.forEach(ufo => ufo.destroy())
     if (this.targets) this.targets.forEach(target => target.destroy())
     this.ufos = []
-    this.targets = [new Target(new THREE.Vector3(), this.scale * 20, this.scene)]
+    this.targets = [new Target(new THREE.Vector3(), this.scale * 25, this.scene)]
   }
   spawnUfo () {
     var axis = Math.round(Math.random())
@@ -68,13 +67,17 @@ module.exports = class Game {
     this.renderer.render(this.scene, this.camera)
   }
   down (p) {
+    var min = Infinity
+    this.selected = false
     for (let ufo of this.ufos) {
-      if (p.distanceTo(ufo.route.position) < ufo.radius * 3) {
+      let distance = p.distanceTo(ufo.route.position)
+      if (distance < ufo.radius * 3) {
+        if (min < distance) continue
         this.selected = ufo
-        ufo.down(p)
-        break
+        min = distance
       }
     }
+    if (this.selected) this.selected.down(p)
   }
   move (p) {
     if (!this.selected) return

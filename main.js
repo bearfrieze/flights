@@ -36181,7 +36181,6 @@
 	
 	    var bounds = utils.bounds();
 	    this.scale = Math.sqrt(Math.pow(bounds[0], 2) + Math.pow(bounds[1], 2)) / Math.pow(10, 3);
-	    console.log(this.scale);
 	    this.scene = new THREE.Scene();
 	    this.camera = new THREE.OrthographicCamera(bounds[0] / -2, bounds[0] / 2, bounds[1] / 2, bounds[1] / -2, 1, 1000);
 	    this.camera.position.z = 1;
@@ -36204,7 +36203,7 @@
 	        return target.destroy();
 	      });
 	      this.ufos = [];
-	      this.targets = [new Target(new THREE.Vector3(), this.scale * 20, this.scene)];
+	      this.targets = [new Target(new THREE.Vector3(), this.scale * 25, this.scene)];
 	    }
 	  }, {
 	    key: 'spawnUfo',
@@ -36256,6 +36255,8 @@
 	  }, {
 	    key: 'down',
 	    value: function down(p) {
+	      var min = Infinity;
+	      this.selected = false;
 	      var _iteratorNormalCompletion = true;
 	      var _didIteratorError = false;
 	      var _iteratorError = undefined;
@@ -36264,10 +36265,11 @@
 	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	          var ufo = _step.value;
 	
-	          if (p.distanceTo(ufo.route.position) < ufo.radius * 3) {
+	          var distance = p.distanceTo(ufo.route.position);
+	          if (distance < ufo.radius * 3) {
+	            if (min < distance) continue;
 	            this.selected = ufo;
-	            ufo.down(p);
-	            break;
+	            min = distance;
 	          }
 	        }
 	      } catch (err) {
@@ -36284,6 +36286,8 @@
 	          }
 	        }
 	      }
+	
+	      if (this.selected) this.selected.down(p);
 	    }
 	  }, {
 	    key: 'move',
