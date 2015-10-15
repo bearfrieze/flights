@@ -16,7 +16,7 @@ module.exports = class Game {
     this.renderer.sortObjects = true
     document.body.appendChild(this.renderer.domElement)
     utils.pointerify(this, this.renderer.domElement)
-    this.difficulty = 4
+    this.difficulty = 5
     this.reset()
   }
   reset () {
@@ -24,6 +24,11 @@ module.exports = class Game {
     if (this.targets) this.targets.forEach(target => target.destroy())
     this.ufos = []
     this.targets = [new Target(new THREE.Vector3(), this.scale * 25, this.scene)]
+    this.spawnUfo()
+    clearInterval(this.spawnInterval)
+    this.spawnInterval = setInterval(() => {
+      if (this.ufos.length < this.difficulty) this.spawnUfo()
+    }, 5000)
   }
   spawnUfo () {
     var axis = Math.round(Math.random())
@@ -60,7 +65,6 @@ module.exports = class Game {
       if (ufo.crashed) return false
       ufo.render()
     }
-    while (this.ufos.length < this.difficulty) this.spawnUfo()
     return true
   }
   render () {

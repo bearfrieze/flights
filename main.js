@@ -36189,13 +36189,15 @@
 	    this.renderer.sortObjects = true;
 	    document.body.appendChild(this.renderer.domElement);
 	    utils.pointerify(this, this.renderer.domElement);
-	    this.difficulty = 4;
+	    this.difficulty = 5;
 	    this.reset();
 	  }
 	
 	  _createClass(Game, [{
 	    key: 'reset',
 	    value: function reset() {
+	      var _this = this;
+	
 	      if (this.ufos) this.ufos.forEach(function (ufo) {
 	        return ufo.destroy();
 	      });
@@ -36204,6 +36206,11 @@
 	      });
 	      this.ufos = [];
 	      this.targets = [new Target(new THREE.Vector3(), this.scale * 25, this.scene)];
+	      this.spawnUfo();
+	      clearInterval(this.spawnInterval);
+	      this.spawnInterval = setInterval(function () {
+	        if (_this.ufos.length < _this.difficulty) _this.spawnUfo();
+	      }, 5000);
 	    }
 	  }, {
 	    key: 'spawnUfo',
@@ -36244,7 +36251,6 @@
 	        if (ufo.crashed) return false;
 	        ufo.render();
 	      }
-	      while (this.ufos.length < this.difficulty) this.spawnUfo();
 	      return true;
 	    }
 	  }, {
@@ -36344,6 +36350,8 @@
 	
 	module.exports = (function () {
 	  function Ufo(start, radius, scene) {
+	    var _this = this;
+	
 	    _classCallCheck(this, Ufo);
 	
 	    this.route = new Route(start, this, scene);
@@ -36355,6 +36363,10 @@
 	    this.render();
 	    scene.add(this.mesh);
 	    this.scene = scene;
+	    this.spawning = true;
+	    setTimeout(function () {
+	      return _this.spawning = false;
+	    }, 1500);
 	  }
 	
 	  _createClass(Ufo, [{
@@ -36376,6 +36388,7 @@
 	  }, {
 	    key: 'step',
 	    value: function step() {
+	      if (this.spawning) return;
 	      this.route.travel(0.5);
 	    }
 	  }, {
@@ -36383,6 +36396,7 @@
 	    value: function render() {
 	      this.mesh.position.copy(this.route.position);
 	      var color = this.mesh.material.color;
+	      if (this.spawning) return color.setStyle('darkgray');
 	      if (this.colliding) return color.setStyle('red');
 	      if (this.goal) return color.setStyle('green');
 	      color.setStyle('black');

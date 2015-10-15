@@ -13,6 +13,8 @@ module.exports = class Ufo {
     this.render()
     scene.add(this.mesh)
     this.scene = scene
+    this.spawning = true
+    setTimeout(() => this.spawning = false, 1500)
   }
   down (point) {
     this.route.reset(this.route.position)
@@ -25,11 +27,13 @@ module.exports = class Ufo {
     this.route.drawing = false
   }
   step () {
+    if (this.spawning) return
     this.route.travel(0.5)
   }
   render () {
     this.mesh.position.copy(this.route.position)
     var color = this.mesh.material.color
+    if (this.spawning) return color.setStyle('darkgray')
     if (this.colliding) return color.setStyle('red')
     if (this.goal) return color.setStyle('green')
     color.setStyle('black')
