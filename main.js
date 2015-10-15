@@ -36262,9 +36262,10 @@
 	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	          var ufo = _step.value;
 	
-	          if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
+	          if (p.distanceTo(ufo.route.position) < ufo.radius * 3) {
 	            this.selected = ufo;
 	            ufo.down(p);
+	            break;
 	          }
 	        }
 	      } catch (err) {

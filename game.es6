@@ -67,9 +67,10 @@ module.exports = class Game {
   }
   down (p) {
     for (let ufo of this.ufos) {
-      if (p.distanceTo(ufo.route.position) < ufo.radius * 1.5) {
+      if (p.distanceTo(ufo.route.position) < ufo.radius * 3) {
         this.selected = ufo
         ufo.down(p)
+        break
       }
     }
   }
