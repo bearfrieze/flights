@@ -36394,6 +36394,7 @@
 	    value: function down(point) {
 	      this.route.reset(this.position);
 	      this.route.drawing = true;
+	      this.goal = false;
 	    }
 	  }, {
 	    key: 'move',

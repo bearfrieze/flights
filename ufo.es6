@@ -21,6 +21,7 @@ module.exports = class Ufo {
   down (point) {
     this.route.reset(this.position)
     this.route.drawing = true
+    this.goal = false
   }
   move (point) {
     this.route.addPoint(point)
