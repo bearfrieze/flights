@@ -87,12 +87,14 @@ module.exports = class Game {
   move (p) {
     if (!this.selected) return
     this.selected.move(p)
+    var dist = p.distanceTo(this.targets[0].position)
+    if (dist < this.targets[0].radius) {
+      this.selected.goal = true
+      this.up(p)
+    }
   }
   up (p) {
     if (!this.selected) return
-    var points = this.selected.route.points
-    var dist = points[points.length - 1].distanceTo(this.targets[0].position)
-    this.selected.goal = dist < this.targets[0].radius
     this.selected.up(p)
     this.selected = false
   }

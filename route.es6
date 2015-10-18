@@ -15,7 +15,7 @@ module.exports = class Route {
     var positions = new Float32Array(POINTS_MAX * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.mesh = new THREE.Line(geometry, materials.route)
-    this.mesh.renderOrder = 1
+    this.mesh.renderOrder = 0
     scene.add(this.mesh)
     this.reset(origin)
   }

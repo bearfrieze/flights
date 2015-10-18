@@ -9,7 +9,7 @@ module.exports = class Target {
     var geometry = new THREE.CircleGeometry(radius, 32)
     this.mesh = new THREE.Mesh(geometry, material)
     this.mesh.position.copy(position)
-    this.mesh.renderOrder = 0
+    this.mesh.renderOrder = 1
     scene.add(this.mesh)
   }
   destroy () {
