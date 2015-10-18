@@ -5,18 +5,6 @@ var utils = {}
 utils.bounds = function () {
   return [document.body.offsetWidth, document.body.offsetHeight]
 }
-utils.edgeVector = function (axis, side) {
-  var bounds = utils.bounds()
-  var position = new THREE.Vector3()
-  for (var i = 0; i < 2; i++) {
-    if (axis === i) {
-      position.setComponent(i, -bounds[i] / 2 + Math.random() * bounds[i])
-    } else {
-      position.setComponent(i, side === 0 ? -bounds[i] / 2 : bounds[i] / 2)
-    }
-  }
-  return position
-}
 
 utils.pointerify = function (parent, canvas) {
   var point = function (e) {
@@ -60,6 +48,23 @@ utils.requestFullscreen = function (element) {
   } else if (element.webkitRequestFullscreen) {
     element.webkitRequestFullscreen()
   }
+}
+
+utils.bestCandidate = function (bounds, vectors, iterations) {
+  var tmp = new THREE.Vector3()
+  var res = new THREE.Vector3()
+  var max = -Infinity
+  for (let i = 0; i < iterations; i++) {
+    bounds.forEach((b, i) => tmp.setComponent(i, -b / 2 + Math.random() * b))
+    var min = vectors.reduce((min, v) => {
+      return Math.min(min, v.distanceTo(tmp))
+    }, Infinity)
+    if (min > max) {
+      max = min
+      res.copy(tmp.clone())
+    }
+  }
+  return res
 }
 
 module.exports = utils

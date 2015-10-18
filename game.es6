@@ -24,22 +24,22 @@ module.exports = class Game {
     if (this.targets) this.targets.forEach(target => target.destroy())
     this.ufos = []
     this.targets = [new Target(new THREE.Vector3(), this.scale * 25, this.scene)]
-    this.spawnUfo()
+    this.ufoSpawn()
     clearInterval(this.spawnInterval)
     this.spawnInterval = setInterval(() => {
-      if (this.ufos.length < this.difficulty) this.spawnUfo()
+      if (this.ufos.length < this.difficulty) this.ufoSpawn()
     }, 5000)
   }
-  spawnUfo () {
-    var start = utils.edgeVector(
-      Math.round(Math.random()),
-      Math.round(Math.random())
-    )
-    this.ufos.push(new Ufo(start, this.scale * 30, this.scale / 20, this.scene))
+  ufoLocation () {
+    var vectors = this.ufos.map(ufo => ufo.position)
+    return utils.bestCandidate(utils.bounds(), vectors, 10)
+  }
+  ufoSpawn () {
+    this.ufos.push(new Ufo(this.ufoLocation(), this.scale * 30, this.scale / 20, this))
   }
   step (ms) {
     this.ufos.forEach(ufo => {
-      ufo.step(ms)
+      ufo.step(ms, this.ufoLocation.bind(this))
       ufo.colliding = false
     })
     for (var i = 0; i < this.ufos.length; i++) {

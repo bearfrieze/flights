@@ -3,18 +3,18 @@ var materials = require('./materials.es6')
 var Route = require('./route.es6')
 
 module.exports = class Ufo {
-  constructor (start, radius, speed, scene) {
-    this.route = new Route(start, this, scene)
+  constructor (start, radius, speed, game) {
+    this.route = new Route(start, this, game)
     this.position = this.route.position
     this.radius = radius
     this.speed = speed
+    this.game = game
     var material = new THREE.MeshBasicMaterial()
     var geometry = new THREE.CircleGeometry(radius, 32)
     this.mesh = new THREE.Mesh(geometry, material)
     this.mesh.renderOrder = 2
     this.render()
-    scene.add(this.mesh)
-    this.scene = scene
+    this.game.scene.add(this.mesh)
     this.spawning = true
     setTimeout(() => this.spawning = false, 1500)
   }
@@ -44,7 +44,7 @@ module.exports = class Ufo {
     return this.position.distanceTo(ufo.position) - this.radius - ufo.radius
   }
   destroy () {
-    this.scene.remove(this.mesh)
+    this.game.scene.remove(this.mesh)
     this.route.destroy()
   }
 }

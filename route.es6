@@ -7,17 +7,17 @@ const SEGMENT_MIN = 10.0
 const SEGMENT_MAX = 20.0
 
 module.exports = class Route {
-  constructor (origin, ufo, scene) {
+  constructor (start, ufo, game) {
     this.ufo = ufo
-    this.scene = scene
+    this.game = game
     this.position = new THREE.Vector3()
     var geometry = new THREE.BufferGeometry()
     var positions = new Float32Array(POINTS_MAX * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.mesh = new THREE.Line(geometry, materials.route)
     this.mesh.renderOrder = 0
-    scene.add(this.mesh)
-    this.reset(origin)
+    this.game.scene.add(this.mesh)
+    this.reset(start)
   }
   addPoint (point) {
     if (this.points.length) {
@@ -51,10 +51,7 @@ module.exports = class Route {
     if (this.ufo.goal && this.points.length === 1) return this.ufo.landed = true
     while(this.points.length === 1) {
       this.random = true
-      this.addPoint(utils.edgeVector(
-        Math.round(Math.random()),
-        Math.round(Math.random())
-      ))
+      this.addPoint(this.game.ufoLocation())
     }
     this.position.copy(this.points[1])
       .sub(this.points[0])
@@ -78,6 +75,6 @@ module.exports = class Route {
     this.random = false
   }
   destroy () {
-    this.scene.remove(this.mesh)
+    this.game.scene.remove(this.mesh)
   }
 }
