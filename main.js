@@ -36271,7 +36271,7 @@
 	        for (var _iterator = this.ufos[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	          var ufo = _step.value;
 	
-	          var distance = p.distanceTo(ufo.route.position);
+	          var distance = p.distanceTo(ufo.position);
 	          if (distance < ufo.radius * 3) {
 	            if (min < distance) continue;
 	            this.selected = ufo;
@@ -36355,6 +36355,7 @@
 	    _classCallCheck(this, Ufo);
 	
 	    this.route = new Route(start, this, scene);
+	    this.position = this.route.position;
 	    this.radius = radius;
 	    this.speed = speed;
 	    var material = new THREE.MeshBasicMaterial();
@@ -36373,7 +36374,7 @@
 	  _createClass(Ufo, [{
 	    key: 'down',
 	    value: function down(point) {
-	      this.route.reset(this.route.position);
+	      this.route.reset(this.position);
 	      this.route.drawing = true;
 	    }
 	  }, {
@@ -36395,7 +36396,7 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      this.mesh.position.copy(this.route.position);
+	      this.mesh.position.copy(this.position);
 	      var color = this.mesh.material.color;
 	      if (this.spawning) return color.setStyle('darkgray');
 	      if (this.colliding) return color.setStyle('red');
@@ -36405,7 +36406,7 @@
 	  }, {
 	    key: 'distanceTo',
 	    value: function distanceTo(ufo) {
-	      return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius;
+	      return this.position.distanceTo(ufo.position) - this.radius - ufo.radius;
 	    }
 	  }, {
 	    key: 'destroy',
@@ -36445,6 +36446,7 @@
 	
 	    this.ufo = ufo;
 	    this.scene = scene;
+	    this.position = new THREE.Vector3();
 	    var geometry = new THREE.BufferGeometry();
 	    var positions = new Float32Array(POINTS_MAX * 3);
 	    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -36492,7 +36494,7 @@
 	        this.random = true;
 	        this.addPoint(utils.edgeVector(Math.round(Math.random()), Math.round(Math.random())));
 	      }
-	      this.position = this.points[1].clone().sub(this.points[0]).setLength(this.progress).add(this.points[0]);
+	      this.position.copy(this.points[1]).sub(this.points[0]).setLength(this.progress).add(this.points[0]);
 	    }
 	  }, {
 	    key: 'render',
@@ -36510,8 +36512,8 @@
 	    value: function reset(point) {
 	      this.progress = 0;
 	      this.points = [];
-	      this.addPoint(point);
-	      this.position = point;
+	      this.addPoint(point.clone());
+	      this.position.copy(point);
 	      this.random = false;
 	    }
 	  }, {

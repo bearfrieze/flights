@@ -10,6 +10,7 @@ module.exports = class Route {
   constructor (origin, ufo, scene) {
     this.ufo = ufo
     this.scene = scene
+    this.position = new THREE.Vector3()
     var geometry = new THREE.BufferGeometry()
     var positions = new Float32Array(POINTS_MAX * 3)
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
@@ -55,7 +56,7 @@ module.exports = class Route {
         Math.round(Math.random())
       ))
     }
-    this.position = this.points[1].clone()
+    this.position.copy(this.points[1])
       .sub(this.points[0])
       .setLength(this.progress)
       .add(this.points[0])
@@ -72,8 +73,8 @@ module.exports = class Route {
   reset (point) {
     this.progress = 0
     this.points = []
-    this.addPoint(point)
-    this.position = point
+    this.addPoint(point.clone())
+    this.position.copy(point)
     this.random = false
   }
   destroy () {

@@ -5,6 +5,7 @@ var Route = require('./route.es6')
 module.exports = class Ufo {
   constructor (start, radius, speed, scene) {
     this.route = new Route(start, this, scene)
+    this.position = this.route.position
     this.radius = radius
     this.speed = speed
     var material = new THREE.MeshBasicMaterial()
@@ -18,7 +19,7 @@ module.exports = class Ufo {
     setTimeout(() => this.spawning = false, 1500)
   }
   down (point) {
-    this.route.reset(this.route.position)
+    this.route.reset(this.position)
     this.route.drawing = true
   }
   move (point) {
@@ -32,7 +33,7 @@ module.exports = class Ufo {
     this.route.travel(this.speed * ms)
   }
   render () {
-    this.mesh.position.copy(this.route.position)
+    this.mesh.position.copy(this.position)
     var color = this.mesh.material.color
     if (this.spawning) return color.setStyle('darkgray')
     if (this.colliding) return color.setStyle('red')
@@ -40,7 +41,7 @@ module.exports = class Ufo {
     color.setStyle('black')
   }
   distanceTo (ufo) {
-    return this.route.position.distanceTo(ufo.route.position) - this.radius - ufo.radius
+    return this.position.distanceTo(ufo.position) - this.radius - ufo.radius
   }
   destroy () {
     this.scene.remove(this.mesh)

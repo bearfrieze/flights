@@ -75,7 +75,7 @@ module.exports = class Game {
     var min = Infinity
     this.selected = false
     for (let ufo of this.ufos) {
-      let distance = p.distanceTo(ufo.route.position)
+      let distance = p.distanceTo(ufo.position)
       if (distance < ufo.radius * 3) {
         if (min < distance) continue
         this.selected = ufo
