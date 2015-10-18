@@ -57,13 +57,15 @@
 	//   utils.requestFullscreen(document.documentElement)
 	//   element.removeEventListener('mousedown', fullscreen)
 	//   element.removeEventListener('touchdown', fullscreen)
+	var lastFrame = 0;
 	var game = new Game();
-	var loop = function loop() {
-	  if (!game.step()) {
+	var loop = function loop(ts) {
+	  if (!game.step(ts - lastFrame)) {
 	    game.reset();
 	    return setTimeout(loop, 1000);
 	  }
 	  game.render();
+	  lastFrame = ts;
 	  window.requestAnimationFrame(loop);
 	};
 	window.requestAnimationFrame(loop);
@@ -36215,16 +36217,14 @@
 	  }, {
 	    key: 'spawnUfo',
 	    value: function spawnUfo() {
-	      var axis = Math.round(Math.random());
-	      var side = Math.round(Math.random());
-	      var start = utils.edgeVector(axis, side);
-	      this.ufos.push(new Ufo(start, this.scale * 30, this.scene));
+	      var start = utils.edgeVector(Math.round(Math.random()), Math.round(Math.random()));
+	      this.ufos.push(new Ufo(start, this.scale * 30, this.scale / 20, this.scene));
 	    }
 	  }, {
 	    key: 'step',
-	    value: function step() {
+	    value: function step(ms) {
 	      this.ufos.forEach(function (ufo) {
-	        ufo.step();
+	        ufo.step(ms);
 	        ufo.colliding = false;
 	      });
 	      for (var i = 0; i < this.ufos.length; i++) {
@@ -36349,13 +36349,14 @@
 	var Route = __webpack_require__(/*! ./route.es6 */ 6);
 	
 	module.exports = (function () {
-	  function Ufo(start, radius, scene) {
+	  function Ufo(start, radius, speed, scene) {
 	    var _this = this;
 	
 	    _classCallCheck(this, Ufo);
 	
 	    this.route = new Route(start, this, scene);
 	    this.radius = radius;
+	    this.speed = speed;
 	    var material = new THREE.MeshBasicMaterial();
 	    var geometry = new THREE.CircleGeometry(radius, 32);
 	    this.mesh = new THREE.Mesh(geometry, material);
@@ -36387,9 +36388,9 @@
 	    }
 	  }, {
 	    key: 'step',
-	    value: function step() {
+	    value: function step(ms) {
 	      if (this.spawning) return;
-	      this.route.travel(0.5);
+	      this.route.travel(this.speed * ms);
 	    }
 	  }, {
 	    key: 'render',

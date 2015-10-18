@@ -31,14 +31,15 @@ module.exports = class Game {
     }, 5000)
   }
   spawnUfo () {
-    var axis = Math.round(Math.random())
-    var side = Math.round(Math.random())
-    var start = utils.edgeVector(axis, side)
-    this.ufos.push(new Ufo(start, this.scale * 30, this.scene))
+    var start = utils.edgeVector(
+      Math.round(Math.random()),
+      Math.round(Math.random())
+    )
+    this.ufos.push(new Ufo(start, this.scale * 30, this.scale / 20, this.scene))
   }
-  step () {
+  step (ms) {
     this.ufos.forEach(ufo => {
-      ufo.step()
+      ufo.step(ms)
       ufo.colliding = false
     })
     for (var i = 0; i < this.ufos.length; i++) {

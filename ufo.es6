@@ -3,9 +3,10 @@ var materials = require('./materials.es6')
 var Route = require('./route.es6')
 
 module.exports = class Ufo {
-  constructor (start, radius, scene) {
+  constructor (start, radius, speed, scene) {
     this.route = new Route(start, this, scene)
     this.radius = radius
+    this.speed = speed
     var material = new THREE.MeshBasicMaterial()
     var geometry = new THREE.CircleGeometry(radius, 32)
     this.mesh = new THREE.Mesh(geometry, material)
@@ -26,9 +27,9 @@ module.exports = class Ufo {
   up (point) {
     this.route.drawing = false
   }
-  step () {
+  step (ms) {
     if (this.spawning) return
-    this.route.travel(0.5)
+    this.route.travel(this.speed * ms)
   }
   render () {
     this.mesh.position.copy(this.route.position)

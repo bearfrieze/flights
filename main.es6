@@ -6,13 +6,15 @@ var Game = require('./game.es6')
 //   utils.requestFullscreen(document.documentElement)
 //   element.removeEventListener('mousedown', fullscreen)
 //   element.removeEventListener('touchdown', fullscreen)
+  var lastFrame = 0
   var game = new Game()
-  var loop = () => {
-    if (!game.step()) {
+  var loop = ts => {
+    if (!game.step(ts - lastFrame)) {
       game.reset()
       return setTimeout(loop, 1000)
     }
     game.render()
+    lastFrame = ts
     window.requestAnimationFrame(loop)
   }
   window.requestAnimationFrame(loop)
